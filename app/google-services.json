@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "258675053504",
+    "project_id": "honari-a59f4",
+    "storage_bucket": "honari-a59f4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:258675053504:android:1889753c01a315bddbae25",
+        "android_client_info": {
+          "package_name": "com.honari.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "258675053504-4gc27ubfa5ficgtdkrlcq4jv2anoq8bm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjaobtBfQHvuNEP0CkRk6y52xyIzSjFSI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "258675053504-4gc27ubfa5ficgtdkrlcq4jv2anoq8bm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
