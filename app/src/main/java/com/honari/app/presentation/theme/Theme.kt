@@ -16,9 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-/**
- * Light color scheme for Honari app.
- */
+/** Light color scheme – vibrant violet/coral palette. */
 private val LightColorScheme = lightColorScheme(
     primary = PrimaryColor,
     onPrimary = Color.White,
@@ -29,6 +27,11 @@ private val LightColorScheme = lightColorScheme(
     onSecondary = Color.White,
     secondaryContainer = SecondaryLight,
     onSecondaryContainer = SecondaryDark,
+
+    tertiary = TertiaryColor,
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFB2F5E8),
+    onTertiaryContainer = Color(0xFF00372C),
 
     background = BackgroundColor,
     onBackground = PrimaryTextColor,
@@ -45,40 +48,41 @@ private val LightColorScheme = lightColorScheme(
     outlineVariant = TertiaryTextColor
 )
 
-/**
- * Dark color scheme for Honari app.
- * Currently using the same colors as light theme.
- * TODO: Implement proper dark theme colors.
- */
+/** Dark color scheme – deep navy/violet palette with vibrant accent colors. */
 private val DarkColorScheme = darkColorScheme(
-    primary = PrimaryColor,
-    onPrimary = Color.White,
-    primaryContainer = PrimaryLight,
-    onPrimaryContainer = PrimaryDark,
+    primary = PrimaryLight,
+    onPrimary = Color(0xFF21005E),
+    primaryContainer = PrimaryColor,
+    onPrimaryContainer = Color(0xFFE9DDFF),
 
-    secondary = SecondaryColor,
-    onSecondary = Color.White,
-    secondaryContainer = SecondaryLight,
-    onSecondaryContainer = SecondaryDark,
+    secondary = SecondaryLight,
+    onSecondary = Color(0xFF5C0000),
+    secondaryContainer = SecondaryColor,
+    onSecondaryContainer = Color(0xFFFFDAD6),
 
-    background = Color(0xFF121212),
-    onBackground = Color(0xFFE0E0E0),
+    tertiary = TertiaryColor,
+    onTertiary = Color(0xFF003728),
+    tertiaryContainer = Color(0xFF005142),
+    onTertiaryContainer = Color(0xFFB2F5E8),
 
-    surface = Color(0xFF1E1E1E),
-    onSurface = Color(0xFFE0E0E0),
-    surfaceVariant = Color(0xFF2A2A2A),
-    onSurfaceVariant = Color(0xFFB0B0B0),
+    background = DarkBackgroundColor,
+    onBackground = Color(0xFFEAE0FF),
 
-    error = ErrorColor,
-    onError = Color.White,
+    surface = DarkSurfaceColor,
+    onSurface = Color(0xFFEAE0FF),
+    surfaceVariant = DarkSurfaceVariantColor,
+    onSurfaceVariant = Color(0xFFCAB8ED),
 
-    outline = Color(0xFF666666),
-    outlineVariant = Color(0xFF444444)
+    error = Color(0xFFFF897A),
+    onError = Color(0xFF5F0000),
+
+    outline = Color(0xFF9880C8),
+    outlineVariant = Color(0xFF4A3870)
 )
 
 /**
  * Main theme composable for Honari app.
- * Applies custom colors, typography, and system UI settings.
+ * Supports light & dark mode; dynamic color is disabled so our vibrant palette is always used.
  */
 @Composable
 fun HonariTheme(
@@ -91,7 +95,6 @@ fun HonariTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }

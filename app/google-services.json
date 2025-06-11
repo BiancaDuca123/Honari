@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "258675053504-te9r8omug3d6r7o5h7gp4udnmkvfk77i.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.honari.app",
+            "certificate_hash": "fa5181bc283dde1c7c93eda425f29989ab4780b2"
+          }
+        },
+        {
           "client_id": "258675053504-4gc27ubfa5ficgtdkrlcq4jv2anoq8bm.apps.googleusercontent.com",
           "client_type": 3
         }

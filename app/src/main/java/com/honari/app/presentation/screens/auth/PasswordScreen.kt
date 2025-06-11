@@ -1,5 +1,6 @@
 package com.honari.app.presentation.screens.auth
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,149 +40,198 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.honari.app.R
-import com.honari.app.presentation.theme.BackgroundColor
-import com.honari.app.presentation.theme.PrimaryColor
-import com.honari.app.presentation.theme.PrimaryTextColor
-import com.honari.app.presentation.theme.SecondaryTextColor
+import com.honari.app.presentation.theme.HonariTheme
 
 @Composable
-fun PasswordScreen(
-    navController: NavController,
-    viewModel: AuthViewModel = hiltViewModel()
-) {
+fun PasswordScreen(navController: NavController, viewModel: AuthViewModel) {
     val uiState by viewModel.uiState.collectAsState()
     val focusManager = LocalFocusManager.current
-
     var email by remember { mutableStateOf("") }
+    val onSendReset = {
+        focusManager.clearFocus()
+        if (email.isNotBlank()) viewModel.sendPasswordResetEmail(email)
+    }
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        PasswordFormColumn(
+            email = email,
+            onEmailChange = { email = it },
+            isLoading = uiState.isLoading,
+            error = uiState.error,
+            resetSent = uiState.passwordResetSent,
+            onSendReset = onSendReset,
+            onBack = { navController.popBackStack() }
+        )
+    }
+}
 
-    Box(
+@Composable
+private fun PasswordFormColumn(
+    email: String,
+    onEmailChange: (String) -> Unit,
+    isLoading: Boolean,
+    error: String?,
+    resetSent: Boolean,
+    onSendReset: () -> Unit,
+    onBack: () -> Unit
+) {
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundColor)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(80.dp))
-
-            // Logo and Title
-            Icon(
-                imageVector = Icons.Default.AutoStories,
-                contentDescription = null,
-                modifier = Modifier.size(80.dp),
-                tint = PrimaryColor
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
+        Spacer(modifier = Modifier.height(80.dp))
+        PasswordHeader()
+        Spacer(modifier = Modifier.height(24.dp))
+        PasswordEmailField(email = email, onEmailChange = onEmailChange, onSubmit = onSendReset)
+        Spacer(modifier = Modifier.height(24.dp))
+        PasswordResetButton(
+            isLoading = isLoading,
+            enabled = email.isNotBlank() && !isLoading,
+            onClick = onSendReset
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        error?.let {
             Text(
-                text = stringResource(R.string.password_reset_title),
-                style = MaterialTheme.typography.headlineMedium,
-                color = PrimaryTextColor,
-                modifier = Modifier.padding(bottom = 16.dp)
+                text = it,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 8.dp)
             )
-
+        }
+        if (resetSent) {
             Text(
-                text = stringResource(R.string.password_reset_instructions),
+                text = stringResource(R.string.password_reset_email_sent),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+        TextButton(onClick = onBack) {
+            Text(
+                text = stringResource(R.string.back_to_login),
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+@Composable
+private fun PasswordHeader() {
+    Icon(
+        imageVector = Icons.Default.AutoStories,
+        contentDescription = null,
+        modifier = Modifier.size(80.dp),
+        tint = MaterialTheme.colorScheme.primary
+    )
+    Spacer(modifier = Modifier.height(24.dp))
+    Text(
+        text = stringResource(R.string.password_reset_title),
+        style = MaterialTheme.typography.headlineMedium,
+        color = MaterialTheme.colorScheme.onBackground,
+        modifier = Modifier.padding(bottom = 16.dp)
+    )
+    Text(
+        text = stringResource(R.string.password_reset_instructions),
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.padding(bottom = 32.dp)
+    )
+}
+
+@Composable
+private fun PasswordEmailField(
+    email: String,
+    onEmailChange: (String) -> Unit,
+    onSubmit: () -> Unit
+) {
+    OutlinedTextField(
+        value = email, onValueChange = onEmailChange,
+        label = { Text(stringResource(R.string.email)) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Email,
+            imeAction = ImeAction.Done
+        ),
+        keyboardActions = KeyboardActions(onDone = { onSubmit() }),
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+        )
+    )
+}
+
+@Composable
+private fun PasswordResetButton(isLoading: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.fillMaxWidth().height(56.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                color = Color.White,
+                strokeWidth = 2.dp
+            )
+        } else {
+            Text(
+                text = stringResource(R.string.send_reset_link),
                 style = MaterialTheme.typography.bodyLarge,
-                color = SecondaryTextColor,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 32.dp)
+                color = Color.White
             )
+        }
+    }
+}
 
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text(stringResource(R.string.email)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Email,
-                    imeAction = ImeAction.Done
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        focusManager.clearFocus()
-                        if (email.isNotBlank()) {
-                            viewModel.sendPasswordResetEmail(email)
-                        }
-                    }
-                ),
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryColor,
-                    unfocusedBorderColor = SecondaryTextColor
-                )
+// ── Previews ─────────────────────────────────────────────────────────────────
+
+@Preview(name = "Password Reset – Light", showBackground = true, showSystemUi = true)
+@Composable
+private fun PasswordScreenLightPreview() {
+    HonariTheme(darkTheme = false) {
+        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            PasswordFormColumn(
+                email = "bianca@honari.app",
+                onEmailChange = {},
+                isLoading = false,
+                error = null,
+                resetSent = false,
+                onSendReset = {},
+                onBack = {}
             )
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = {
-                    focusManager.clearFocus()
-                    if (email.isNotBlank()) {
-                        viewModel.sendPasswordResetEmail(email)
-                    }
-                },
-                enabled = email.isNotBlank() && !uiState.isLoading,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = Color.White,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text(
-                        text = stringResource(R.string.send_reset_link),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.White
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Show success or error messages
-            uiState.error?.let { error ->
-                Text(
-                    text = error,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-
-            // You can update this to react to some success flag from uiState instead of message var
-            if (uiState.passwordResetSent) {
-                Text(
-                    text = stringResource(R.string.password_reset_email_sent),
-                    color = PrimaryColor,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            TextButton(
-                onClick = { navController.popBackStack() }
-            ) {
-                Text(
-                    text = stringResource(R.string.back_to_login),
-                    color = PrimaryColor
-                )
-            }
+@Preview(
+    name = "Password Reset – Dark",
+    showBackground = true,
+    showSystemUi = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
+@Composable
+private fun PasswordScreenDarkPreview() {
+    HonariTheme(darkTheme = true) {
+        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            PasswordFormColumn(
+                email = "bianca@honari.app",
+                onEmailChange = {},
+                isLoading = false,
+                error = null,
+                resetSent = true,
+                onSendReset = {},
+                onBack = {}
+            )
         }
     }
 }

@@ -11,6 +11,7 @@ interface AuthRepository {
     suspend fun register(email: String, password: String, displayName: String): Result<User>
     suspend fun logout()
     fun getCurrentUser(): Flow<User?>
+    fun isLoggedIn(): Boolean
     suspend fun updateProfile(user: User): Result<User>
     suspend fun sendPasswordResetEmail(email: String): Result<Unit>
     suspend fun signInWithGoogle(idToken: String): Result<User>

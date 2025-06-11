@@ -2,101 +2,113 @@ package com.honari.app.presentation.screens.library
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.honari.app.domain.model.LibraryBook
-import com.honari.app.domain.model.LibraryStats
-import com.honari.app.domain.model.LibraryTab
-import com.honari.app.domain.model.LibraryUiState
 import com.honari.app.domain.model.ReadingStatus
+import com.honari.app.domain.repository.AuthRepository
+import com.honari.app.domain.repository.LibraryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/**
- * ViewModel for Library screen.
- */
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class LibraryViewModel @Inject constructor() : ViewModel() {
+class LibraryViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
+    private val libraryRepository: LibraryRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LibraryUiState())
     val uiState: StateFlow<LibraryUiState> = _uiState.asStateFlow()
 
+    private var deletionJob: Job? = null
+
     init {
-        loadLibraryData()
+        loadLibrary()
     }
 
-    private fun loadLibraryData() {
+    private fun loadLibrary() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-
-            // Mock data
-            val books = getMockBooks()
-
-            _uiState.value = _uiState.value.copy(
-                isLoading = false,
-                allBooks = books,
-                currentlyReading = books.filter { it.status == ReadingStatus.READING },
-                finishedBooks = books.filter { it.status == ReadingStatus.FINISHED },
-                wantToRead = books.filter { it.status == ReadingStatus.WANT_TO_READ },
-                stats = LibraryStats(
-                    totalBooks = 47,
-                    booksThisYear = 12,
-                    avgRating = 4.3f,
-                    pagesRead = 847
-                ),
-                tabCounts = mapOf(
-                    LibraryTab.ALL to 47,
-                    LibraryTab.READING to 3,
-                    LibraryTab.READ to 28,
-                    LibraryTab.TO_READ to 16
-                )
-            )
+            _uiState.update { it.copy(isLoading = true) }
+            authRepository.getCurrentUser()
+                .flatMapLatest { user ->
+                    if (user == null) {
+                        flowOf(emptyList())
+                    } else {
+                        libraryRepository.getUserLibrary(user.id)
+                    }
+                }
+                .catch { e ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error =
+                            e.message ?: "Failed to load library"
+                        )
+                    }
+                }
+                .collect { books ->
+                    _uiState.update { it.copy(isLoading = false, books = books, error = null) }
+                }
         }
     }
 
-    private fun getMockBooks(): List<LibraryBook> {
-        return listOf(
-            LibraryBook(
-                id = "1",
-                title = "Norwegian Wood",
-                author = "Haruki Murakami",
-                status = ReadingStatus.READING,
-                progress = 68,
-                imageUrl = "https://images.pexels.com/photos/1130980/pexels-photo-1130980.jpeg?auto=compress&cs=tinysrgb&w=200&h=280",
-                tags = listOf("melancholic", "coming-of-age"),
-                dateAdded = "Jan 15, 2024"
-            ),
-            LibraryBook(
-                id = "2",
-                title = "The Midnight Library",
-                author = "Matt Haig",
-                status = ReadingStatus.FINISHED,
-                rating = 4.8f,
-                imageUrl = "https://images.pexels.com/photos/1926988/pexels-photo-1926988.jpeg?auto=compress&cs=tinysrgb&w=200&h=280",
-                tags = listOf("philosophical", "uplifting"),
-                dateAdded = "Dec 8, 2023"
-            ),
-            LibraryBook(
-                id = "3",
-                title = "Circe",
-                author = "Madeline Miller",
-                status = ReadingStatus.WANT_TO_READ,
-                imageUrl = "https://images.pexels.com/photos/1370298/pexels-photo-1370298.jpeg?auto=compress&cs=tinysrgb&w=200&h=280",
-                tags = listOf("mythology", "fantasy"),
-                dateAdded = "Jan 20, 2024"
-            ),
-            LibraryBook(
-                id = "4",
-                title = "Klara and the Sun",
-                author = "Kazuo Ishiguro",
-                status = ReadingStatus.READING,
-                progress = 34,
-                imageUrl = "https://images.pexels.com/photos/2067569/pexels-photo-2067569.jpeg?auto=compress&cs=tinysrgb&w=200&h=280",
-                tags = listOf("sci-fi", "emotional"),
-                dateAdded = "Jan 10, 2024"
-            )
-        )
+    fun setFilter(status: ReadingStatus?) {
+        _uiState.update { it.copy(selectedFilter = status) }
+    }
+
+    fun updateBookStatus(bookId: String, status: ReadingStatus) {
+        viewModelScope.launch {
+            val user = authRepository.getCurrentUser().first() ?: return@launch
+            libraryRepository.updateStatus(user.id, bookId, status)
+        }
+    }
+
+    /** Update reading progress (0–100 %). */
+    fun updateProgress(bookId: String, progress: Int) {
+        viewModelScope.launch {
+            val user = authRepository.getCurrentUser().first() ?: return@launch
+            libraryRepository.updateProgress(user.id, bookId, progress)
+        }
+    }
+
+    // ── Swipe-to-delete with Undo ────────────────────────────────────────────
+
+    /**
+     * Hides [bookId] from the list immediately and schedules a permanent Firestore
+     * deletion after [undoWindowMs] ms.  Call [undoDeletion] to cancel.
+     */
+    fun markForDeletion(bookId: String, undoWindowMs: Long = 4_000L) {
+        deletionJob?.cancel()
+        _uiState.update { it.copy(pendingDeleteId = bookId) }
+        deletionJob = viewModelScope.launch {
+            delay(undoWindowMs)
+            commitDeletion()
+        }
+    }
+
+    /** Cancels the scheduled deletion and restores the book in the list. */
+    fun undoDeletion() {
+        deletionJob?.cancel()
+        deletionJob = null
+        _uiState.update { it.copy(pendingDeleteId = null) }
+    }
+
+    private fun commitDeletion() {
+        val bookId = _uiState.value.pendingDeleteId ?: return
+        viewModelScope.launch {
+            val user = authRepository.getCurrentUser().first() ?: return@launch
+            libraryRepository.removeBook(user.id, bookId)
+            _uiState.update { it.copy(pendingDeleteId = null) }
+        }
     }
 }

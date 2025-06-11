@@ -2,41 +2,36 @@ package com.honari.app.presentation.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Primary Colors
-val PrimaryColor = Color(0xFF2D4A6B)
-val PrimaryLight = Color(0xFF5B7599)
-val PrimaryDark = Color(0xFF0B2340)
+// ── Brand – Vibrant Violet ───────────────────────────────────────────────────
+val PrimaryColor = Color(0xFF7C4DFF) // Deep vibrant violet
+val PrimaryLight = Color(0xFFB388FF) // Soft lavender
+val PrimaryDark = Color(0xFF4527A0) // Deep purple
 
-// Secondary Colors
-val SecondaryColor = Color(0xFF7B6BA6)
-val SecondaryLight = Color(0xFFA897D8)
-val SecondaryDark = Color(0xFF4E4276)
+// ── Secondary – Warm Coral ───────────────────────────────────────────────────
+val SecondaryColor = Color(0xFFFF6B6B) // Vivid coral-red
+val SecondaryLight = Color(0xFFFF9E9E) // Soft coral
+val SecondaryDark = Color(0xFFD63838) // Deep coral
 
-// Background Colors
-val BackgroundColor = Color(0xFFFEFEFE)
+// ── Tertiary – Teal / Mint ───────────────────────────────────────────────────
+val TertiaryColor = Color(0xFF00D4AA) // Vibrant teal
+
+// ── Background / Surface – Light ────────────────────────────────────────────
+val BackgroundColor = Color(0xFFF5F0FF) // Soft lavender-white
 val SurfaceColor = Color(0xFFFFFFFF)
-val SurfaceLight = Color(0xFFF5F7FA)
-val HeroBackground = Color(0xFFF8F9FB)
+val SurfaceLight = Color(0xFFEDE7F8) // Pale lavender
 
-// Text Colors
-val PrimaryTextColor = Color(0xFF2D4A6B)
-val SecondaryTextColor = Color(0xFF8B9DC3)
-val TertiaryTextColor = Color(0xFFB5C0D3)
+// ── Background / Surface – Dark ─────────────────────────────────────────────
+val DarkBackgroundColor = Color(0xFF0D0B1E) // Near-black with violet tint
+val DarkSurfaceColor = Color(0xFF1A1630) // Very dark navy/purple
+val DarkSurfaceVariantColor = Color(0xFF252040) // Lighter dark variant
 
-// Mood Colors
-val MoodMelancholic = Color(0xFF4A5D7A)
-val MoodMelancholiLight = Color(0xFF5B6B8A)
-val MoodDreamy = Color(0xFF7B6BA6)
-val MoodDreamyLight = Color(0xFF8B7BB6)
-val MoodNostalgic = Color(0xFFB8860B)
-val MoodNostalgicLight = Color(0xFFC8960B)
-val MoodContemplative = Color(0xFF5A7C65)
-val MoodContemplativeLight = Color(0xFF6A8C75)
-val MoodRomantic = Color(0xFFE8A5A5)
-val MoodRomanticLight = Color(0xFFF8B5B5)
+// ── Text ─────────────────────────────────────────────────────────────────────
+val PrimaryTextColor = Color(0xFF1E1040) // Deep purple-black (light theme)
+val SecondaryTextColor = Color(0xFF7B6AA8) // Muted purple
+val TertiaryTextColor = Color(0xFFB3A8CC) // Light purple-grey
 
-// Accent Colors
-val RatingStarColor = Color(0xFFFFB800)
-val TrendingColor = Color(0xFF4A7C59)
-val ErrorColor = Color(0xFFE57373)
-val SuccessColor = Color(0xFF81C784)
+// ── Accent ───────────────────────────────────────────────────────────────────
+val RatingStarColor = Color(0xFFFFBE00) // Golden yellow
+val TrendingColor = Color(0xFF00D4AA) // Teal/mint
+val ErrorColor = Color(0xFFE53935) // Vivid red
+val SuccessColor = Color(0xFF00C472) // Vibrant green

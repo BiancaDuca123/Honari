@@ -1,50 +1,50 @@
 package com.honari.app.presentation.screens.profile
 
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
+import android.content.res.Configuration
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.AutoStories
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.FormatQuote
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.NightlightRound
+import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,690 +53,590 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.honari.app.R
-import com.honari.app.domain.model.GenrePreference
-import com.honari.app.domain.model.Milestone
-import com.honari.app.domain.model.ProfileActivity
-import com.honari.app.domain.model.YearlyStat
-import com.honari.app.presentation.navigation.Screen
-import com.honari.app.presentation.screens.auth.AuthViewModel
-import com.honari.app.presentation.theme.BackgroundColor
-import com.honari.app.presentation.theme.ErrorColor
-import com.honari.app.presentation.theme.HeroBackground
-import com.honari.app.presentation.theme.MoodDreamy
-import com.honari.app.presentation.theme.MoodRomantic
-import com.honari.app.presentation.theme.PrimaryColor
-import com.honari.app.presentation.theme.PrimaryTextColor
+import com.honari.app.presentation.theme.HonariTheme
 import com.honari.app.presentation.theme.RatingStarColor
-import com.honari.app.presentation.theme.SecondaryTextColor
-import com.honari.app.presentation.theme.SurfaceLight
-import com.honari.app.presentation.theme.TertiaryTextColor
-import com.honari.app.presentation.theme.TrendingColor
-import kotlinx.coroutines.delay
+import com.honari.app.presentation.theme.SuccessColor
+import com.honari.app.presentation.theme.ThemePreference
+import java.text.SimpleDateFormat
+import java.util.Date
 
 @Composable
 fun ProfileScreen(
-    navController: NavHostController,
-    authViewModel: AuthViewModel = hiltViewModel(),
-    profileViewModel: ProfileViewModel = hiltViewModel()
+    onSignOut: () -> Unit,
+    viewModel: ProfileViewModel,
+    themePreference: ThemePreference,
+    onThemeChange: (ThemePreference) -> Unit,
 ) {
+    val state by viewModel.uiState.collectAsState()
 
-    val authUiState by authViewModel.uiState.collectAsState()
-    val profileUiState by profileViewModel.uiState.collectAsState()
-    val user = authUiState.currentUser
+    if (state.isLoading) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        }
+        return
+    }
 
-    LazyColumn(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundColor)
+            .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp),
     ) {
-        // Header with gradient background
-        item {
-            ProfileHeaderSection(
-                user = user,
-                onShareClick = { /* TODO: Share profile */ },
-                onSettingsClick = { /* TODO: Navigate to settings */ }
-            )
-        }
-
-        // Animated Stats
-        item {
-            AnimatedStatsSection(stats = profileUiState.yearlyStats)
-        }
-
-        // Reading Milestones
-        item {
-            MilestonesSection(milestones = profileUiState.milestones)
-        }
-
-        // Reading DNA with animated chart
-        item {
-            ReadingDNASection(genres = profileUiState.favoriteGenres)
-        }
-
-        // Recent Activity
-        item {
-            RecentActivitySection(activities = profileUiState.recentActivities)
-        }
-
-        // Share Profile CTA
-        item {
-            ShareProfileCard(
-                onShareClick = { /* TODO: Share profile */ }
-            )
-        }
-
-        // Logout Button
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                OutlinedButton(
-                    onClick = {
-                        authViewModel.logout()
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(0)
-                        }},
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = ErrorColor // make sure this matches your theme or define it
-                    ),
-                    border = ButtonDefaults.outlinedButtonBorder(true).copy(
-                        width = 1.dp,
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(ErrorColor, ErrorColor)
-                        )
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Logout,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(R.string.logout),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            }
-        }
-
-        item { Spacer(modifier = Modifier.height(20.dp)) }
-    }
-}
-
-/**
- * Profile header with gradient background.
- */
-@Composable
-private fun ProfileHeaderSection(
-    user: com.honari.app.domain.model.User?,
-    onShareClick: () -> Unit,
-    onSettingsClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        PrimaryColor.copy(alpha = 0.1f),
-                        Color.Transparent
-                    )
-                )
-            )
-            .padding(20.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Profile Picture
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .background(PrimaryColor.copy(alpha = 0.2f))
-                ) {
-                    if (user?.profileImageUrl != null) {
-                        AsyncImage(
-                            model = user.profileImageUrl,
-                            contentDescription = "Profile Picture",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Text(
-                            text = user?.displayName?.firstOrNull()?.toString() ?: "?",
-                            modifier = Modifier.align(Alignment.Center),
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = PrimaryColor,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                // User Info
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = user?.displayName ?: "Reader",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = PrimaryTextColor,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "@${user?.email?.substringBefore('@') ?: "reader"}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = SecondaryTextColor
-                    )
-                    Text(
-                        text = "Finding solace in stories, one page at a time ✨",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = PrimaryTextColor,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-            }
-
-            // Actions
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                IconButton(
-                    onClick = onShareClick,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(SurfaceLight, RoundedCornerShape(12.dp))
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = "Share",
-                        tint = PrimaryTextColor
-                    )
-                }
-                IconButton(
-                    onClick = onSettingsClick,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(SurfaceLight, RoundedCornerShape(12.dp))
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = PrimaryTextColor
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * Animated stats section.
- */
-@Composable
-private fun AnimatedStatsSection(stats: List<YearlyStat>) {
-    Column(modifier = Modifier.padding(vertical = 16.dp)) {
         Text(
-            text = "2024 Reading Journey",
-            style = MaterialTheme.typography.titleLarge,
-            color = PrimaryTextColor,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
+            text = stringResource(R.string.profile_title),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(top = 20.dp, bottom = 28.dp),
         )
-
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp)
-        ) {
-            items(stats) { stat ->
-                AnimatedStatCard(stat = stat)
-            }
-        }
-    }
-}
-
-/**
- * Animated stat card.
- */
-@Composable
-private fun AnimatedStatCard(stat: YearlyStat) {
-    var isVisible by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        delay(100)
-        isVisible = true
-    }
-
-    val animatedValue by animateFloatAsState(
-        targetValue = if (isVisible) stat.value.toFloatOrNull() ?: 0f else 0f,
-        animationSpec = tween(1000),
-        label = "stat_animation"
-    )
-
-    Card(
-        modifier = Modifier
-            .width(100.dp)
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            ),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(stat.color.copy(alpha = 0.2f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = stat.icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = stat.color
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = if (stat.label == "Avg Rating") {
-                    String.format("%.1f", animatedValue)
-                } else {
-                    animatedValue.toInt().toString()
-                },
-                style = MaterialTheme.typography.headlineSmall,
-                color = PrimaryTextColor,
-                fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                text = stat.label,
-                style = MaterialTheme.typography.bodySmall,
-                color = SecondaryTextColor,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
-
-/**
- * Milestones section with progress indicators.
- */
-@Composable
-private fun MilestonesSection(milestones: List<Milestone>) {
-    Column(modifier = Modifier.padding(vertical = 16.dp)) {
-        Text(
-            text = "Milestones",
-            style = MaterialTheme.typography.titleLarge,
-            color = PrimaryTextColor,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
+        ProfileAvatar(
+            displayName = state.user?.displayName,
+            email = state.user?.email,
+            photoUrl = state.user?.profileImageUrl,
+            memberSince = state.user?.createdAt,
         )
+        Spacer(Modifier.height(24.dp))
 
-        val rows = milestones.chunked(2)
-        Column(
-            modifier = Modifier.padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            rows.forEach { row ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    row.forEach { milestone ->
-                        MilestoneCard(
-                            milestone = milestone,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    if (row.size == 1) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * Milestone card with achievement indicator.
- */
-@Composable
-private fun MilestoneCard(
-    milestone: Milestone,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .height(120.dp)
-            .clickable { /* TODO: Show milestone details */ },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (milestone.achieved) Color.White else HeroBackground
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (milestone.achieved) 4.dp else 0.dp
+        // Reading Goal card
+        ReadingGoalCard(
+            booksRead = state.booksRead,
+            goal = state.readingGoal,
+            onUpdateGoal = viewModel::updateReadingGoal,
         )
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = milestone.icon,
-                    fontSize = 32.sp
-                )
+        Spacer(Modifier.height(16.dp))
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = milestone.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (milestone.achieved) PrimaryTextColor else TertiaryTextColor,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center
-                )
-
-                Text(
-                    text = milestone.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (milestone.achieved) SecondaryTextColor else TertiaryTextColor,
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            if (milestone.achieved) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                        .size(12.dp)
-                        .background(TrendingColor, CircleShape)
-                )
-            }
-        }
-    }
-}
-
-/**
- * Reading DNA section with animated chart.
- */
-@Composable
-private fun ReadingDNASection(genres: List<GenrePreference>) {
-    Column(modifier = Modifier.padding(vertical = 16.dp)) {
-        Text(
-            text = "Reading DNA",
-            style = MaterialTheme.typography.titleLarge,
-            color = PrimaryTextColor,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
+        ReadingProgressCard(
+            reading = state.currentlyReading,
+            finished = state.booksRead,
+            total = state.totalBooks
         )
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                genres.forEach { genre ->
-                    GenreProgressBar(genre = genre)
-                }
-            }
-        }
-    }
-}
-
-/**
- * Animated genre progress bar.
- */
-@Composable
-private fun GenreProgressBar(genre: GenrePreference) {
-    var isVisible by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        delay(100)
-        isVisible = true
-    }
-
-    val animatedProgress by animateFloatAsState(
-        targetValue = if (isVisible) genre.percentage / 100f else 0f,
-        animationSpec = tween(1000),
-        label = "genre_progress"
-    )
-
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = genre.name,
-                style = MaterialTheme.typography.bodyMedium,
-                color = PrimaryTextColor,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = "${genre.percentage}%",
-                style = MaterialTheme.typography.bodyMedium,
-                color = SecondaryTextColor,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(6.dp)
-                .background(SurfaceLight, RoundedCornerShape(3.dp))
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(animatedProgress)
-                    .fillMaxHeight()
-                    .background(genre.color, RoundedCornerShape(3.dp))
-            )
-        }
-    }
-}
-
-/**
- * Recent activity section.
- */
-@Composable
-private fun RecentActivitySection(activities: List<ProfileActivity>) {
-    Column(modifier = Modifier.padding(vertical = 16.dp)) {
-        Text(
-            text = "Recent Activity",
-            style = MaterialTheme.typography.titleLarge,
-            color = PrimaryTextColor,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
+        Spacer(Modifier.height(16.dp))
+        StatsCard(
+            reading = state.currentlyReading,
+            finished = state.booksRead,
+            wantToRead = state.wantToRead,
+            total = state.totalBooks
         )
+        Spacer(Modifier.height(16.dp))
 
-        Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.padding(horizontal = 20.dp)
-        ) {
-            activities.forEach { activity ->
-                ActivityCard(activity = activity)
-            }
-        }
+        // Theme toggle
+        ThemeToggleCard(themePreference = themePreference, onThemeChange = onThemeChange)
+        Spacer(Modifier.height(24.dp))
+
+        SignOutButton(onSignOut = { viewModel.signOut(onSignOut) })
+        Spacer(Modifier.height(32.dp))
     }
 }
 
-/**
- * Activity card component.
- */
+// ── Reading Goal ──────────────────────────────────────────────────────────────
+
 @Composable
-private fun ActivityCard(activity: ProfileActivity) {
+private fun ReadingGoalCard(booksRead: Int, goal: Int, onUpdateGoal: (Int) -> Unit) {
+    var showDialog by remember { mutableStateOf(false) }
+    val progress = if (goal > 0) (booksRead.toFloat() / goal).coerceIn(0f, 1f) else 0f
+    val achieved = goal in 1..booksRead
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = HeroBackground)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.padding(20.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(
-                imageVector = when (activity.type) {
-                    "finished" -> Icons.Default.CheckCircle
-                    "joined" -> Icons.Default.Groups
-                    "quote" -> Icons.Default.FormatQuote
-                    "started" -> Icons.AutoMirrored.Filled.MenuBook
-                    else -> Icons.Default.BookmarkBorder
-                },
-                contentDescription = null,
-                tint = when (activity.type) {
-                    "finished" -> TrendingColor
-                    "joined" -> MoodDreamy
-                    "quote" -> MoodRomantic
-                    "started" -> PrimaryColor
-                    else -> SecondaryTextColor
+            // Circular progress arc
+            Box(modifier = Modifier.size(72.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(
+                    progress = { 1f },
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    strokeWidth = 6.dp,
+                    strokeCap = StrokeCap.Round,
+                )
+                CircularProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxSize(),
+                    color = if (achieved) SuccessColor else MaterialTheme.colorScheme.primary,
+                    strokeWidth = 6.dp,
+                    strokeCap = StrokeCap.Round,
+                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = if (goal > 0) "$booksRead" else "—",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        lineHeight = 16.sp,
+                    )
+                    if (goal > 0) Text(
+                        text = "/$goal",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
-            )
-
+            }
+            Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = activity.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = PrimaryTextColor
+                    text = "Reading Goal ${if (goal > 0) "${(progress * 100).toInt()}%" else ""}",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground,
                 )
+                Spacer(Modifier.height(4.dp))
                 Text(
-                    text = activity.date,
+                    text = when {
+                        goal == 0 -> "Tap to set your yearly book goal"
+                        achieved -> "🎉 Goal achieved! Amazing work!"
+                        booksRead == 0 -> "$goal books remaining this year"
+                        else -> "${goal - booksRead} more to reach your goal"
+                    },
                     style = MaterialTheme.typography.bodySmall,
-                    color = SecondaryTextColor
+                    color = if (achieved) SuccessColor else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            IconButton24(icon = Icons.Default.Edit, tint = MaterialTheme.colorScheme.primary) {
+                showDialog = true
+            }
+        }
+    }
 
-            activity.rating?.let { rating ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = RatingStarColor
-                    )
-                    Text(
-                        text = rating.toString(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = PrimaryTextColor,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+    if (showDialog) {
+        GoalPickerDialog(
+            currentGoal = goal,
+            onConfirm = { newGoal -> onUpdateGoal(newGoal); showDialog = false },
+            onDismiss = { showDialog = false },
+        )
+    }
+}
+
+@Composable
+private fun GoalPickerDialog(currentGoal: Int, onConfirm: (Int) -> Unit, onDismiss: () -> Unit) {
+    var input by remember { mutableStateOf(if (currentGoal > 0) currentGoal.toString() else "") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Yearly Reading Goal", fontWeight = FontWeight.Bold) },
+        text = {
+            Column {
+                Text(
+                    "How many books do you want to read this year?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = { if (it.length <= 3 && it.all(Char::isDigit)) input = it },
+                    label = { Text("Books") },
+                    placeholder = { Text("e.g. 24") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(input.toIntOrNull() ?: 0) }) {
+                Text(
+                    "Set Goal",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+// ── Theme Toggle ──────────────────────────────────────────────────────────────
+
+@Composable
+private fun ThemeToggleCard(
+    themePreference: ThemePreference,
+    onThemeChange: (ThemePreference) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                "Appearance",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ThemeOption(
+                    icon = Icons.Default.PhoneAndroid, label = "System",
+                    selected = themePreference == ThemePreference.SYSTEM,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onThemeChange(ThemePreference.SYSTEM) },
+                )
+                ThemeOption(
+                    icon = Icons.Default.WbSunny, label = "Light",
+                    selected = themePreference == ThemePreference.LIGHT,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onThemeChange(ThemePreference.LIGHT) },
+                )
+                ThemeOption(
+                    icon = Icons.Default.NightlightRound, label = "Dark",
+                    selected = themePreference == ThemePreference.DARK,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onThemeChange(ThemePreference.DARK) },
+                )
             }
         }
     }
 }
 
-/**
- * Share profile card.
- */
 @Composable
-private fun ShareProfileCard(onShareClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .clickable { onShareClick() },
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = PrimaryColor)
+private fun ThemeOption(
+    icon: ImageVector,
+    label: String,
+    selected: Boolean,
+    modifier: Modifier,
+    onClick: () -> Unit
+) {
+    val bg =
+        if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+    val fg =
+        if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+    Surface(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick),
+        color = bg, shape = RoundedCornerShape(10.dp),
     ) {
         Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(vertical = 10.dp),
+        ) {
+            Icon(icon, contentDescription = label, tint = fg, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.height(4.dp))
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = fg,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+            )
+        }
+    }
+}
+
+// ── Existing cards ────────────────────────────────────────────────────────────
+
+@Composable
+private fun ProfileAvatar(
+    displayName: String?,
+    email: String?,
+    photoUrl: String?,
+    memberSince: Long?
+) {
+    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        if (!photoUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = photoUrl,
+                contentDescription = "Profile photo",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(CircleShape)
+                    .border(3.dp, MaterialTheme.colorScheme.primary, CircleShape)
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(96.dp)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    displayName?.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        Spacer(Modifier.height(14.dp))
+        Text(
+            displayName ?: "—",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            email ?: "—",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (memberSince != null) {
+            Spacer(Modifier.height(4.dp))
+            val formatted =
+                SimpleDateFormat("MMMM yyyy", LocalLocale.current.platformLocale).format(
+                    Date(memberSince)
+                )
+            Text(
+                stringResource(R.string.member_since, formatted),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReadingProgressCard(reading: Int, finished: Int, total: Int) {
+    val progress = if (total > 0) finished.toFloat() / total.toFloat() else 0f
+    Card(
+        modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.AutoStories,
+                    null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    stringResource(R.string.reading_progress),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Spacer(Modifier.weight(1f))
+                Text(
+                    stringResource(R.string.books_progress, finished, total),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+            if (reading > 0) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    stringResource(
+                        if (reading > 1) R.string.currently_reading_count_plural else R.string.currently_reading_count,
+                        reading
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatsCard(reading: Int, finished: Int, wantToRead: Int, total: Int) {
+    Card(
+        modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+            StatRowItem(
+                Icons.AutoMirrored.Filled.MenuBook,
+                MaterialTheme.colorScheme.primary,
+                stringResource(R.string.currently_reading),
+                reading.toString()
+            )
+            HorizontalDivider(
+                Modifier.padding(horizontal = 16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant
+            )
+            StatRowItem(
+                Icons.Default.CheckCircle,
+                SuccessColor,
+                stringResource(R.string.books_finished),
+                finished.toString()
+            )
+            HorizontalDivider(
+                Modifier.padding(horizontal = 16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant
+            )
+            StatRowItem(
+                Icons.Default.Bookmark,
+                RatingStarColor,
+                stringResource(R.string.want_to_read),
+                wantToRead.toString()
+            )
+            HorizontalDivider(
+                Modifier.padding(horizontal = 16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant
+            )
+            StatRowItem(
+                Icons.Default.AutoStories,
+                MaterialTheme.colorScheme.onSurfaceVariant,
+                stringResource(R.string.total_in_library),
+                total.toString()
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatRowItem(icon: ImageVector, iconTint: Color, label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .size(36.dp)
+                .background(iconTint.copy(alpha = 0.12f), RoundedCornerShape(8.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, tint = iconTint, modifier = Modifier.size(18.dp))
+        }
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+    }
+}
+
+@Composable
+private fun SignOutButton(onSignOut: () -> Unit) {
+    OutlinedButton(
+        onClick = onSignOut, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+        border = ButtonDefaults.outlinedButtonBorder(enabled = true)
+    ) {
+        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
+        Spacer(Modifier.width(8.dp))
+        Text(stringResource(R.string.sign_out))
+    }
+}
+
+@Composable
+private fun IconButton24(icon: ImageVector, tint: Color, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+    }
+}
+
+// ── Previews ──────────────────────────────────────────────────────────────────
+
+@Preview(name = "Profile – Light", showBackground = true, showSystemUi = true)
+@Composable
+private fun ProfileScreenLightPreview() {
+    HonariTheme(darkTheme = false) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
         ) {
             Text(
-                text = "Share your reading journey",
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center
+                "Profile",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(top = 20.dp, bottom = 28.dp)
             )
+            ProfileAvatar("Bianca Ionescu", "bianca@honari.app", null, System.currentTimeMillis())
+            Spacer(Modifier.height(24.dp))
+            ReadingGoalCard(booksRead = 8, goal = 24, onUpdateGoal = {})
+            Spacer(Modifier.height(16.dp))
+            ReadingProgressCard(reading = 2, finished = 8, total = 15)
+            Spacer(Modifier.height(16.dp))
+            StatsCard(reading = 2, finished = 8, wantToRead = 5, total = 15)
+            Spacer(Modifier.height(16.dp))
+            ThemeToggleCard(themePreference = ThemePreference.SYSTEM, onThemeChange = {})
+            Spacer(Modifier.height(24.dp))
+            SignOutButton(onSignOut = {})
+        }
+    }
+}
 
+@Preview(
+    name = "Profile – Dark", showBackground = true, showSystemUi = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
+@Composable
+private fun ProfileScreenDarkPreview() {
+    HonariTheme(darkTheme = true) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+        ) {
             Text(
-                text = "Let others discover your literary taste and connect over shared stories",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.8f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(vertical = 8.dp)
+                "Profile",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(top = 20.dp, bottom = 28.dp)
             )
-
-            Surface(
-                modifier = Modifier.padding(top = 12.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = Color.White.copy(alpha = 0.2f)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
-                    Text(
-                        text = "Share Profile",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.White,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
+            ProfileAvatar("Bianca Ionescu", "bianca@honari.app", null, System.currentTimeMillis())
+            Spacer(Modifier.height(24.dp))
+            ReadingGoalCard(booksRead = 24, goal = 24, onUpdateGoal = {})
+            Spacer(Modifier.height(16.dp))
+            ReadingProgressCard(reading = 2, finished = 24, total = 26)
+            Spacer(Modifier.height(16.dp))
+            StatsCard(reading = 2, finished = 24, wantToRead = 5, total = 31)
+            Spacer(Modifier.height(16.dp))
+            ThemeToggleCard(themePreference = ThemePreference.DARK, onThemeChange = {})
+            Spacer(Modifier.height(24.dp))
+            SignOutButton(onSignOut = {})
         }
     }
 }

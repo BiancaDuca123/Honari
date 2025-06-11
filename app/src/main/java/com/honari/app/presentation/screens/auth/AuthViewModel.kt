@@ -2,13 +2,11 @@ package com.honari.app.presentation.screens.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.honari.app.domain.model.AuthUiState
 import com.honari.app.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -17,9 +15,7 @@ import javax.inject.Inject
  * Handles login, registration, and auth state management.
  */
 @HiltViewModel
-class AuthViewModel @Inject constructor(
-    private val authRepository: AuthRepository
-) : ViewModel() {
+class AuthViewModel @Inject constructor(private val authRepository: AuthRepository) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
@@ -139,24 +135,14 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun logout() {
-        viewModelScope.launch {
-            authRepository.logout()
-            _uiState.update {
-                it.copy(
-                    isAuthenticated = false,
-                    currentUser = null,
-                    isLoading = false,
-                    error = null
-                )
-            }
-        }
-    }
-
     /**
      * Clears error state.
      */
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun onGoogleSignInFailed(message: String = "Google Sign-In failed. Please try again.") {
+        _uiState.value = _uiState.value.copy(isLoading = false, error = message)
     }
 }

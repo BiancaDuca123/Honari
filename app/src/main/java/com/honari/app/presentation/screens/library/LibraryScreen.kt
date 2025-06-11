@@ -1,618 +1,594 @@
 package com.honari.app.presentation.screens.library
 
+import android.content.res.Configuration
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.honari.app.domain.model.LibraryBook
-import com.honari.app.domain.model.LibraryStats
-import com.honari.app.domain.model.LibraryTab
+import com.honari.app.R
+import com.honari.app.domain.model.Book
 import com.honari.app.domain.model.ReadingStatus
-import com.honari.app.presentation.components.shimmerEffect
-import com.honari.app.presentation.navigation.Screen
-import com.honari.app.presentation.theme.BackgroundColor
-import com.honari.app.presentation.theme.ErrorColor
-import com.honari.app.presentation.theme.HeroBackground
-import com.honari.app.presentation.theme.MoodContemplative
-import com.honari.app.presentation.theme.MoodDreamy
-import com.honari.app.presentation.theme.MoodNostalgic
-import com.honari.app.presentation.theme.PrimaryColor
-import com.honari.app.presentation.theme.PrimaryTextColor
+import com.honari.app.presentation.theme.HonariTheme
 import com.honari.app.presentation.theme.RatingStarColor
-import com.honari.app.presentation.theme.SecondaryTextColor
-import com.honari.app.presentation.theme.SurfaceLight
-import com.honari.app.presentation.theme.TertiaryTextColor
-import com.honari.app.presentation.theme.TrendingColor
+import com.honari.app.presentation.theme.SuccessColor
+import kotlinx.coroutines.launch
 
-/**
- * Library screen composable with improved design.
- * Displays user's book collection with enhanced visuals.
- */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LibraryScreen(
-    navController: NavController,
-    viewModel: LibraryViewModel = hiltViewModel()
-) {
-    val uiState by viewModel.uiState.collectAsState()
-    var selectedTab by remember { mutableStateOf(LibraryTab.ALL) }
+fun LibraryScreen(onScanClick: () -> Unit, viewModel: LibraryViewModel) {
+    val state by viewModel.uiState.collectAsState()
+    var selectedBook by remember { mutableStateOf<Book?>(null) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundColor)
-    ) {
-        // Header
-        item {
-            LibraryHeader(
-                onSearchClick = { /* TODO: Navigate to search */ },
-                onFilterClick = { /* TODO: Show filter options */ },
-                onAddClick = { /* TODO: Add new book */ }
-            )
-        }
+    LaunchedEffect(state.pendingDeleteId) {
+        val pendingId = state.pendingDeleteId ?: return@LaunchedEffect
+        val pendingBook = state.books.find { it.id == pendingId } ?: return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = "${pendingBook.title} removed",
+            actionLabel = "Undo",
+            duration = SnackbarDuration.Short
+        )
+        if (result == SnackbarResult.ActionPerformed) viewModel.undoDeletion()
+    }
 
-        // Library Stats with gradient background
-        item {
-            LibraryStatsSection(stats = uiState.stats)
-        }
-
-        // Tab Selection
-        item {
-            LibraryTabRow(
-                selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it },
-                tabCounts = uiState.tabCounts
-            )
-        }
-
-        // Books List
-        val books = when (selectedTab) {
-            LibraryTab.ALL -> uiState.allBooks
-            LibraryTab.READING -> uiState.currentlyReading
-            LibraryTab.READ -> uiState.finishedBooks
-            LibraryTab.TO_READ -> uiState.wantToRead
-        }
-
-        if (books.isEmpty() && !uiState.isLoading) {
-            item {
-                EmptyLibraryState(tab = selectedTab)
-            }
-        } else {
-            items(books) { book ->
-                LibraryBookCard(
-                    book = book,
-                    onClick = {
-                        navController.navigate(Screen.BookDetail.createRoute(book.id))
-                    }
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onScanClick,
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(
+                    Icons.Default.CameraAlt,
+                    contentDescription = "Scan book",
+                    tint = MaterialTheme.colorScheme.onPrimary
                 )
             }
-        }
-
-        item { Spacer(modifier = Modifier.height(20.dp)) }
-    }
-}
-
-/**
- * Library header with improved design.
- */
-@Composable
-private fun LibraryHeader(
-    onSearchClick: () -> Unit,
-    onFilterClick: () -> Unit,
-    onAddClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             Text(
-                text = "My Library",
+                text = stringResource(R.string.my_library),
                 style = MaterialTheme.typography.headlineMedium,
-                color = PrimaryTextColor,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Your literary sanctuary",
-                style = MaterialTheme.typography.bodyMedium,
-                color = SecondaryTextColor
-            )
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            IconButton(
-                onClick = onSearchClick,
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(SurfaceLight, RoundedCornerShape(12.dp))
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search",
-                    tint = PrimaryTextColor,
-                    modifier = Modifier.size(20.dp)
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(
+                    start = 20.dp,
+                    end = 20.dp,
+                    top = 20.dp,
+                    bottom = 12.dp
                 )
-            }
-            IconButton(
-                onClick = onFilterClick,
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(SurfaceLight, RoundedCornerShape(12.dp))
-            ) {
-                Icon(
-                    imageVector = Icons.Default.FilterList,
-                    contentDescription = "Filter",
-                    tint = PrimaryTextColor,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            IconButton(
-                onClick = onAddClick,
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(PrimaryTextColor, RoundedCornerShape(12.dp))
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Book",
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-    }
-}
-
-/**
- * Library statistics section with gradient cards.
- */
-@Composable
-private fun LibraryStatsSection(stats: LibraryStats) {
-    LazyRow(
-        modifier = Modifier.padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp)
-    ) {
-        item {
-            StatCard(
-                value = stats.totalBooks.toString(),
-                label = "Books",
-                gradient = listOf(PrimaryColor, PrimaryColor.copy(alpha = 0.8f))
             )
-        }
-        item {
-            StatCard(
-                value = stats.booksThisYear.toString(),
-                label = "This year",
-                gradient = listOf(MoodDreamy, MoodDreamy.copy(alpha = 0.8f))
-            )
-        }
-        item {
-            StatCard(
-                value = String.format("%.1f", stats.avgRating),
-                label = "Avg rating",
-                gradient = listOf(RatingStarColor, RatingStarColor.copy(alpha = 0.8f))
-            )
-        }
-        item {
-            StatCard(
-                value = stats.pagesRead.toString(),
-                label = "Pages read",
-                gradient = listOf(TrendingColor, TrendingColor.copy(alpha = 0.8f))
-            )
-        }
-    }
-}
-
-/**
- * Individual stat card with gradient background.
- */
-@Composable
-private fun StatCard(
-    value: String,
-    label: String,
-    gradient: List<Color>
-) {
-    Card(
-        modifier = Modifier
-            .width(100.dp)
-            .height(80.dp),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.linearGradient(gradient)
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.9f)
-                )
-            }
-        }
-    }
-}
-
-/**
- * Tab row for filtering books.
- */
-@Composable
-private fun LibraryTabRow(
-    selectedTab: LibraryTab,
-    onTabSelected: (LibraryTab) -> Unit,
-    tabCounts: Map<LibraryTab, Int>
-) {
-    LazyRow(
-        modifier = Modifier.padding(vertical = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp)
-    ) {
-        items(LibraryTab.values().toList()) { tab ->
-            LibraryTabItem(
-                tab = tab,
-                isSelected = selectedTab == tab,
-                count = tabCounts[tab] ?: 0,
-                onClick = { onTabSelected(tab) }
-            )
-        }
-    }
-}
-
-/**
- * Individual tab item with animation.
- */
-@Composable
-private fun LibraryTabItem(
-    tab: LibraryTab,
-    isSelected: Boolean,
-    count: Int,
-    onClick: () -> Unit
-) {
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) PrimaryTextColor else SurfaceLight,
-        animationSpec = tween(300),
-        label = "tab_bg"
-    )
-
-    val contentColor by animateColorAsState(
-        targetValue = if (isSelected) Color.White else SecondaryTextColor,
-        animationSpec = tween(300),
-        label = "tab_content"
-    )
-
-    Surface(
-        modifier = Modifier.clickable { onClick() },
-        shape = RoundedCornerShape(20.dp),
-        color = backgroundColor
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = tab.displayName,
-                style = MaterialTheme.typography.bodyMedium,
-                color = contentColor,
-                fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
-            )
-
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = if (isSelected)
-                    Color.White.copy(alpha = 0.3f)
-                else
-                    Color.Black.copy(alpha = 0.1f)
-            ) {
-                Text(
-                    text = count.toString(),
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = contentColor,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-    }
-}
-
-/**
- * Enhanced book card with status indicators.
- */
-@Composable
-private fun LibraryBookCard(
-    book: LibraryBook,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp)
-            .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Book Cover with loading animation
-            Box(
-                modifier = Modifier
-                    .width(60.dp)
-                    .height(90.dp)
-                    .clip(RoundedCornerShape(8.dp))
-            ) {
-                AsyncImage(
-                    model = book.imageUrl,
-                    contentDescription = book.title,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .shimmerEffect(),
-                    contentScale = ContentScale.Crop
-                )
-
-                // Status overlay
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(4.dp)
-                        .background(
-                            color = when (book.status) {
-                                ReadingStatus.READING -> MoodDreamy
-                                ReadingStatus.FINISHED -> TrendingColor
-                                ReadingStatus.WANT_TO_READ -> MoodNostalgic
-                            },
-                            shape = CircleShape
-                        )
-                        .padding(4.dp)
+            LibraryFilterRow(selected = state.selectedFilter, onSelect = viewModel::setFilter)
+            Spacer(Modifier.height(8.dp))
+            when {
+                state.isLoading -> Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = when (book.status) {
-                            ReadingStatus.READING -> Icons.Default.Timer
-                            ReadingStatus.FINISHED -> Icons.Default.CheckCircle
-                            ReadingStatus.WANT_TO_READ -> Icons.Default.Bookmark
-                        },
-                        contentDescription = null,
-                        modifier = Modifier.size(12.dp),
-                        tint = Color.White
-                    )
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
+                state.error != null -> Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(state.error!!, color = MaterialTheme.colorScheme.error)
+                }
+                state.filtered.isEmpty() -> LibraryEmptyState()
+                else -> LibraryBookList(
+                    books = state.filtered,
+                    onBookClick = { book ->
+                        selectedBook = book
+                        scope.launch { sheetState.show() }
+                    },
+                    onBookDelete = { book -> viewModel.markForDeletion(book.id) }
+                )
+            }
+        }
+    }
+
+    if (selectedBook != null) {
+        ModalBottomSheet(
+            onDismissRequest = { selectedBook = null },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            BookActionSheet(
+                book = selectedBook!!,
+                onProgressSave = { progress ->
+                    viewModel.updateProgress(selectedBook!!.id, progress)
+                    scope.launch {
+                        sheetState.hide()
+                        selectedBook = null
+                    }
+                },
+                onStatusSelected = { status ->
+                    viewModel.updateBookStatus(selectedBook!!.id, status)
+                    scope.launch {
+                        sheetState.hide()
+                        selectedBook = null
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun LibraryFilterRow(selected: ReadingStatus?, onSelect: (ReadingStatus?) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        FilterChip(selected = selected == null, onClick = {
+            onSelect(null)
+        }, label = { Text(stringResource(R.string.filter_all)) })
+        FilterChip(selected = selected == ReadingStatus.READING, onClick = {
+            onSelect(ReadingStatus.READING)
+        }, label = { Text(stringResource(R.string.filter_reading)) })
+        FilterChip(selected = selected == ReadingStatus.FINISHED, onClick = {
+            onSelect(ReadingStatus.FINISHED)
+        }, label = { Text(stringResource(R.string.filter_read)) })
+        FilterChip(selected = selected == ReadingStatus.WANT_TO_READ, onClick = {
+            onSelect(ReadingStatus.WANT_TO_READ)
+        }, label = { Text(stringResource(R.string.filter_want)) })
+    }
+}
+
+@Composable
+private fun LibraryEmptyState() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                stringResource(R.string.empty_library_title),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                stringResource(R.string.empty_library_subtitle),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
+@Composable
+private fun LibraryBookList(
+    books: List<Book>,
+    onBookClick: (Book) -> Unit,
+    onBookDelete: (Book) -> Unit
+) {
+    LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
+        items(books, key = { it.id }) { book ->
+            SwipeableBookItem(book = book, onClick = {
+                onBookClick(book)
+            }, onDelete = { onBookDelete(book) })
+        }
+        item { Spacer(Modifier.height(80.dp)) }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeableBookItem(book: Book, onClick: () -> Unit, onDelete: () -> Unit) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                onDelete()
+                true
+            } else {
+                false
+            }
+        }
+    )
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            val color by animateColorAsState(
+                targetValue = if (dismissState.dismissDirection ==
+                    SwipeToDismissBoxValue.EndToStart
+                ) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    Color.Transparent
+                },
+                label = "swipe_bg"
+            )
+            Box(
+                modifier = Modifier.fillMaxSize().background(
+                    color,
+                    RoundedCornerShape(8.dp)
+                ).padding(end = 20.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White)
                 }
             }
+        }
+    ) {
+        LibraryBookItem(book = book, onClick = onClick)
+    }
+}
 
-            // Book Info
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                // Title and Author
+@Composable
+private fun LibraryBookItem(book: Book, onClick: () -> Unit) {
+    Column(modifier = Modifier.background(MaterialTheme.colorScheme.background)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable(
+                onClick = onClick
+            ).padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AsyncImage(
+                model = book.imageUrl,
+                contentDescription = book.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(56.dp, 80.dp).clip(RoundedCornerShape(6.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
                 Text(
-                    text = book.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = PrimaryTextColor,
+                    book.title,
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-
                 Text(
-                    text = book.author,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = SecondaryTextColor
+                    book.author,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
                 )
-
-                // Progress or Rating
-                when (book.status) {
-                    ReadingStatus.READING -> {
-                        ReadingProgress(progress = book.progress ?: 0)
-                    }
-                    ReadingStatus.FINISHED -> {
-                        book.rating?.let { rating ->
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Star,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp),
-                                    tint = RatingStarColor
-                                )
-                                Text(
-                                    text = rating.toString(),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = PrimaryTextColor,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-                    }
-                    ReadingStatus.WANT_TO_READ -> {
-                        // Tags
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            book.tags.take(2).forEach { tag ->
-                                TagChip(tag = tag)
-                            }
-                        }
+                Spacer(Modifier.height(4.dp))
+                StatusChip(status = book.status)
+                if (book.status == ReadingStatus.READING.name && book.progress > 0) {
+                    Spacer(Modifier.height(6.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        LinearProgressIndicator(
+                            progress = { book.progress / 100f },
+                            modifier = Modifier.weight(
+                                1f
+                            ).height(5.dp).clip(RoundedCornerShape(3.dp)),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "${book.progress}%",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
+            }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+    }
+}
 
-                // Date added
-                Text(
-                    text = "Added ${book.dateAdded}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TertiaryTextColor
+@Composable
+private fun StatusChip(status: String) {
+    val (label, containerColor) = when (status) {
+        ReadingStatus.READING.name ->
+            "Reading" to
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+        ReadingStatus.FINISHED.name -> "Read" to SuccessColor.copy(alpha = 0.18f)
+        else ->
+            "Want to Read" to
+                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f)
+    }
+    val textColor = when (status) {
+        ReadingStatus.READING.name -> MaterialTheme.colorScheme.primary
+        ReadingStatus.FINISHED.name -> SuccessColor
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Surface(color = containerColor, shape = RoundedCornerShape(4.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = textColor,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+        )
+    }
+}
+
+/** Combined sheet: progress slider (if READING) + status picker. */
+@Composable
+private fun BookActionSheet(
+    book: Book,
+    onProgressSave: (Int) -> Unit,
+    onStatusSelected: (ReadingStatus) -> Unit
+) {
+    var sliderProgress by remember { mutableFloatStateOf(book.progress.toFloat()) }
+
+    Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 16.dp)) {
+        Text(
+            text = book.title.ifBlank { "Book actions" },
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+
+        if (book.status == ReadingStatus.READING.name) {
+            Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Reading progress",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            "${sliderProgress.toInt()}%",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+                Slider(
+                    value = sliderProgress,
+                    onValueChange = { sliderProgress = it },
+                    valueRange = 0f..100f,
+                    steps = 19,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (book.pageCount > 0) {
+                    val pagesRead = (sliderProgress / 100f * book.pageCount).toInt()
+                    Text(
+                        "$pagesRead / ${book.pageCount} pages",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                Surface(
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                        .clickable { onProgressSave(sliderProgress.toInt()) },
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        "Save progress",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
+                    )
+                }
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+            Text(
+                "Change status",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+            )
+        }
+
+        val statusOptions = listOf(
+            Triple(
+                ReadingStatus.READING,
+                R.string.status_reading,
+                Icons.AutoMirrored.Filled.MenuBook
+            ),
+            Triple(ReadingStatus.FINISHED, R.string.status_finished, Icons.Default.CheckCircle),
+            Triple(ReadingStatus.WANT_TO_READ, R.string.status_want, Icons.Default.Bookmark)
+        )
+        statusOptions.forEach { (status, labelRes, icon) ->
+            val isSelected = book.status == status.name
+            val tint = when (status) {
+                ReadingStatus.READING -> MaterialTheme.colorScheme.primary
+                ReadingStatus.FINISHED -> SuccessColor
+                ReadingStatus.WANT_TO_READ -> RatingStarColor
+            }
+            ListItem(
+                headlineContent = {
+                    Text(
+                        stringResource(labelRes),
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (isSelected) tint else MaterialTheme.colorScheme.onBackground
+                    )
+                },
+                leadingContent = { Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp)) },
+                trailingContent = {
+                    if (isSelected) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            null,
+                            tint = tint,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                },
+                colors = ListItemDefaults.colors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                modifier = Modifier.clickable { onStatusSelected(status) }
+            )
+            if (status != ReadingStatus.WANT_TO_READ) {
+                HorizontalDivider(
+                    Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant
                 )
             }
         }
     }
 }
 
-/**
- * Reading progress indicator.
- */
+// ── Previews ──────────────────────────────────────────────────────────────────
+
+private val previewLibraryBooks = listOf(
+    Book(
+        id = "1",
+        title = "The Great Gatsby",
+        author = "F. Scott Fitzgerald",
+        status = ReadingStatus.READING.name,
+        progress = 42,
+        pageCount = 180
+    ),
+    Book(
+        id = "2",
+        title = "To Kill a Mockingbird",
+        author = "Harper Lee",
+        status = ReadingStatus.FINISHED.name
+    ),
+    Book(
+        id = "3",
+        title = "1984",
+        author = "George Orwell",
+        status = ReadingStatus.WANT_TO_READ.name
+    )
+)
+
+@Preview(name = "Library – Light", showBackground = true, showSystemUi = true)
 @Composable
-private fun ReadingProgress(progress: Int) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+private fun LibraryScreenLightPreview() {
+    HonariTheme(darkTheme = false) {
+        Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
             Text(
-                text = "Progress",
-                style = MaterialTheme.typography.bodySmall,
-                color = SecondaryTextColor
+                "My Library",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 12.dp)
             )
-            Text(
-                text = "$progress%",
-                style = MaterialTheme.typography.labelMedium,
-                color = MoodDreamy,
-                fontWeight = FontWeight.SemiBold
-            )
+            LibraryFilterRow(selected = null, onSelect = {})
+            Spacer(Modifier.height(8.dp))
+            LibraryBookList(books = previewLibraryBooks, onBookClick = {}, onBookDelete = {})
         }
-
-        val animatedProgress by animateFloatAsState(
-            targetValue = progress / 100f,
-            animationSpec = tween(1000),
-            label = "progress"
-        )
-
-        LinearProgressIndicator(
-            progress = animatedProgress,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(6.dp)
-                .clip(RoundedCornerShape(3.dp)),
-            color = MoodDreamy,
-            trackColor = SurfaceLight
-        )
     }
 }
 
-/**
- * Tag chip component.
- */
+@Preview(
+    name = "Library – Dark",
+    showBackground = true,
+    showSystemUi = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
-private fun TagChip(tag: String) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = HeroBackground
-    ) {
-        Text(
-            text = tag,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = SecondaryTextColor,
-            fontWeight = FontWeight.Medium
-        )
+private fun LibraryScreenDarkPreview() {
+    HonariTheme(darkTheme = true) {
+        Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            Text(
+                "My Library",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 12.dp)
+            )
+            LibraryFilterRow(selected = ReadingStatus.READING, onSelect = {})
+            Spacer(Modifier.height(8.dp))
+            LibraryBookList(books = previewLibraryBooks, onBookClick = {}, onBookDelete = {})
+        }
     }
 }
 
-/**
- * Empty state for library tabs.
- */
+@Preview(name = "Book Action Sheet – Progress", showBackground = true)
 @Composable
-private fun EmptyLibraryState(tab: LibraryTab) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(40.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        val (icon, message) = when (tab) {
-            LibraryTab.ALL -> Icons.Default.Bookmark to "Your library is empty"
-            LibraryTab.READING -> Icons.Default.Timer to "No books currently being read"
-            LibraryTab.READ -> Icons.Default.CheckCircle to "No finished books yet"
-            LibraryTab.TO_READ -> Icons.Default.Bookmark to "No books in your reading list"
+private fun BookActionSheetPreview() {
+    HonariTheme(darkTheme = false) {
+        Surface(color = MaterialTheme.colorScheme.surface) {
+            BookActionSheet(book = previewLibraryBooks[0], onProgressSave = {
+            }, onStatusSelected = {})
         }
+    }
+}
 
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = TertiaryTextColor
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            color = SecondaryTextColor
-        )
+@Preview(name = "Library – Empty State", showBackground = true)
+@Composable
+private fun LibraryEmptyPreview() {
+    HonariTheme(darkTheme = false) {
+        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            LibraryEmptyState()
+        }
     }
 }

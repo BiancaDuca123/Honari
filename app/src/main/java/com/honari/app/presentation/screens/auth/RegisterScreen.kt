@@ -1,5 +1,6 @@
 package com.honari.app.presentation.screens.auth
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -54,30 +55,17 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.honari.app.R
 import com.honari.app.presentation.navigation.Screen
-import com.honari.app.presentation.theme.BackgroundColor
-import com.honari.app.presentation.theme.ErrorColor
-import com.honari.app.presentation.theme.PrimaryColor
-import com.honari.app.presentation.theme.PrimaryTextColor
-import com.honari.app.presentation.theme.SecondaryTextColor
-import com.honari.app.presentation.theme.TertiaryTextColor
+import com.honari.app.presentation.theme.HonariTheme
 
-/**
- * Register screen composable.
- * Handles new user registration.
- */
 @Composable
-fun RegisterScreen(
-    navController: NavController,
-    viewModel: AuthViewModel = hiltViewModel()
-) {
+fun RegisterScreen(navController: NavController, viewModel: AuthViewModel) {
     val uiState by viewModel.uiState.collectAsState()
     val focusManager = LocalFocusManager.current
-
     var displayName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -85,293 +73,307 @@ fun RegisterScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
 
+    val canSubmit = displayName.isNotBlank() && email.isNotBlank() && password.isNotBlank() &&
+        password == confirmPassword && !uiState.isLoading
+    val onSubmit = { if (canSubmit) viewModel.register(email, password, displayName) }
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundColor)
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(60.dp))
-
-            // Logo and Title
-            Icon(
-                imageVector = Icons.Default.AutoStories,
-                contentDescription = null,
-                modifier = Modifier.size(80.dp),
-                tint = PrimaryColor
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Create Account",
-                style = MaterialTheme.typography.headlineMedium,
-                color = PrimaryTextColor,
-                fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                text = "Join Honari to start your reading journey",
-                style = MaterialTheme.typography.bodyLarge,
-                color = SecondaryTextColor,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            // Display Name Field
-            OutlinedTextField(
-                value = displayName,
-                onValueChange = { displayName = it },
-                label = { Text(stringResource(R.string.display_name)) },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = SecondaryTextColor
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Next
-                ),
-                keyboardActions = KeyboardActions(
-                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                ),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryColor,
-                    unfocusedBorderColor = TertiaryTextColor
-                )
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Email Field
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text(stringResource(R.string.email)) },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Email,
-                        contentDescription = null,
-                        tint = SecondaryTextColor
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Email,
-                    imeAction = ImeAction.Next
-                ),
-                keyboardActions = KeyboardActions(
-                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                ),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryColor,
-                    unfocusedBorderColor = TertiaryTextColor
-                )
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Password Field
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text(stringResource(R.string.password)) },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = null,
-                        tint = SecondaryTextColor
-                    )
-                },
-                trailingIcon = {
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(
-                            imageVector = if (passwordVisible)
-                                Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = "Toggle password visibility",
-                            tint = SecondaryTextColor
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                visualTransformation = if (passwordVisible)
-                    VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Next
-                ),
-                keyboardActions = KeyboardActions(
-                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                ),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryColor,
-                    unfocusedBorderColor = TertiaryTextColor
-                )
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Confirm Password Field
-            OutlinedTextField(
-                value = confirmPassword,
-                onValueChange = { confirmPassword = it },
-                label = { Text("Confirm Password") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = null,
-                        tint = SecondaryTextColor
-                    )
-                },
-                trailingIcon = {
-                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                        Icon(
-                            imageVector = if (confirmPasswordVisible)
-                                Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = "Toggle password visibility",
-                            tint = SecondaryTextColor
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                visualTransformation = if (confirmPasswordVisible)
-                    VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        focusManager.clearFocus()
-                        if (password == confirmPassword && displayName.isNotBlank() && email.isNotBlank()) {
-                            viewModel.register(email, password, displayName)
-                        }
-                    }
-                ),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryColor,
-                    unfocusedBorderColor = TertiaryTextColor,
-                    errorBorderColor = ErrorColor
-                ),
-                isError = confirmPassword.isNotEmpty() && password != confirmPassword
-            )
-
-            if (confirmPassword.isNotEmpty() && password != confirmPassword) {
-                Text(
-                    text = "Passwords do not match",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = ErrorColor,
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(start = 16.dp, top = 4.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Register Button
-            Button(
-                onClick = {
-                    if (password == confirmPassword) {
-                        viewModel.register(email, password, displayName)
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                enabled = displayName.isNotBlank() &&
-                        email.isNotBlank() &&
-                        password.isNotBlank() &&
-                        password == confirmPassword &&
-                        !uiState.isLoading,
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryColor,
-                    disabledContainerColor = PrimaryColor.copy(alpha = 0.5f)
-                )
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = Color.White,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text(
-                        text = stringResource(R.string.sign_up),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Sign In Link
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.have_account),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = SecondaryTextColor
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = stringResource(R.string.sign_in),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = PrimaryColor,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clickable {
-                        navController.navigateUp()
-                    }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-        }
-
-        // Error handling
-        uiState.error?.let { error ->
-            Snackbar(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(16.dp),
-                action = {
-                    TextButton(onClick = { viewModel.clearError() }) {
-                        Text("Dismiss")
-                    }
-                }
-            ) {
-                Text(error)
-            }
-        }
+        RegisterFormColumn(
+            displayName = displayName,
+            onDisplayNameChange = { displayName = it },
+            email = email,
+            onEmailChange = { email = it },
+            password = password,
+            onPasswordChange = { password = it },
+            confirmPassword = confirmPassword,
+            onConfirmChange = { confirmPassword = it },
+            passwordVisible = passwordVisible,
+            onTogglePassword = { passwordVisible = !passwordVisible },
+            confirmVisible = confirmPasswordVisible,
+            onToggleConfirm = { confirmPasswordVisible = !confirmPasswordVisible },
+            canSubmit = canSubmit,
+            isLoading = uiState.isLoading,
+            onSubmit = onSubmit,
+            onSignIn = { navController.navigateUp() },
+            onFocusMoveDown = { focusManager.moveFocus(FocusDirection.Down) },
+            onFocusClear = { focusManager.clearFocus() },
+        )
+        RegisterErrorSnackbar(error = uiState.error, onDismiss = viewModel::clearError)
     }
-
     LaunchedEffect(uiState.isAuthenticated) {
         if (uiState.isAuthenticated) {
-            navController.navigate(Screen.MainNav.route) {
-                popUpTo(0)
+            navController.navigate(Screen.MainNav.route) { popUpTo(0) }
+        }
+    }
+}
+
+@Composable
+private fun RegisterFormColumn(
+    displayName: String,
+    onDisplayNameChange: (String) -> Unit,
+    email: String,
+    onEmailChange: (String) -> Unit,
+    password: String,
+    onPasswordChange: (String) -> Unit,
+    confirmPassword: String,
+    onConfirmChange: (String) -> Unit,
+    passwordVisible: Boolean,
+    onTogglePassword: () -> Unit,
+    confirmVisible: Boolean,
+    onToggleConfirm: () -> Unit,
+    canSubmit: Boolean,
+    isLoading: Boolean,
+    onSubmit: () -> Unit,
+    onSignIn: () -> Unit,
+    onFocusMoveDown: () -> Unit,
+    onFocusClear: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(modifier = Modifier.height(60.dp))
+        RegisterHeader()
+        Spacer(modifier = Modifier.height(40.dp))
+        RegisterNameField(value = displayName, onChange = onDisplayNameChange, onNext = onFocusMoveDown)
+        Spacer(modifier = Modifier.height(16.dp))
+        RegisterEmailField(value = email, onChange = onEmailChange, onNext = onFocusMoveDown)
+        Spacer(modifier = Modifier.height(16.dp))
+        RegisterPasswordField(value = password, visible = passwordVisible, onChange = onPasswordChange,
+            onToggle = onTogglePassword, onNext = onFocusMoveDown)
+        Spacer(modifier = Modifier.height(16.dp))
+        RegisterConfirmField(
+            value = confirmPassword, visible = confirmVisible,
+            isError = confirmPassword.isNotEmpty() && password != confirmPassword,
+            onChange = onConfirmChange, onToggle = onToggleConfirm,
+            onDone = { onFocusClear(); onSubmit() })
+        Spacer(modifier = Modifier.height(32.dp))
+        RegisterButton(enabled = canSubmit, isLoading = isLoading, onClick = onSubmit)
+        Spacer(modifier = Modifier.height(24.dp))
+        RegisterFooter(onSignIn = onSignIn)
+        Spacer(modifier = Modifier.height(32.dp))
+    }
+}
+
+@Composable
+private fun RegisterHeader() {
+    Icon(
+        imageVector = Icons.Default.AutoStories,
+        contentDescription = null,
+        modifier = Modifier.size(80.dp),
+        tint = MaterialTheme.colorScheme.primary
+    )
+    Spacer(modifier = Modifier.height(24.dp))
+    Text(
+        text = stringResource(R.string.create_account),
+        style = MaterialTheme.typography.headlineMedium,
+        color = MaterialTheme.colorScheme.onBackground,
+        fontWeight = FontWeight.Bold
+    )
+    Text(
+        text = stringResource(R.string.register_subtitle),
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.padding(top = 8.dp)
+    )
+}
+
+@Composable
+private fun RegisterNameField(value: String, onChange: (String) -> Unit, onNext: () -> Unit) {
+    OutlinedTextField(
+        value = value, onValueChange = onChange,
+        label = { Text(stringResource(R.string.display_name)) },
+        leadingIcon = { Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+        modifier = Modifier.fillMaxWidth(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
+        keyboardActions = KeyboardActions(onNext = { onNext() }),
+        singleLine = true, shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+        ),
+    )
+}
+
+@Composable
+private fun RegisterEmailField(value: String, onChange: (String) -> Unit, onNext: () -> Unit) {
+    OutlinedTextField(
+        value = value, onValueChange = onChange,
+        label = { Text(stringResource(R.string.email)) },
+        leadingIcon = { Icon(Icons.Default.Email, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+        modifier = Modifier.fillMaxWidth(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+        keyboardActions = KeyboardActions(onNext = { onNext() }),
+        singleLine = true, shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+        ),
+    )
+}
+
+@Composable
+private fun RegisterPasswordField(
+    value: String,
+    visible: Boolean,
+    onChange: (String) -> Unit,
+    onToggle: () -> Unit,
+    onNext: () -> Unit
+) {
+    OutlinedTextField(
+        value = value, onValueChange = onChange,
+        label = { Text(stringResource(R.string.password)) },
+        leadingIcon = { Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+        trailingIcon = {
+            IconButton(onClick = onToggle) {
+                Icon(
+                    if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                    contentDescription = "Toggle", tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
+        },
+        modifier = Modifier.fillMaxWidth(),
+        visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+        keyboardActions = KeyboardActions(onNext = { onNext() }),
+        singleLine = true, shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+        ),
+    )
+}
+
+@Composable
+private fun RegisterConfirmField(
+    value: String,
+    visible: Boolean,
+    isError: Boolean,
+    onChange: (String) -> Unit,
+    onToggle: () -> Unit,
+    onDone: () -> Unit
+) {
+    OutlinedTextField(
+        value = value, onValueChange = onChange,
+        label = { Text(stringResource(R.string.confirm_password)) },
+        leadingIcon = { Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+        trailingIcon = {
+            IconButton(onClick = onToggle) {
+                Icon(
+                    if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                    contentDescription = "Toggle", tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+        visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { onDone() }),
+        singleLine = true, shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+            errorBorderColor = MaterialTheme.colorScheme.error
+        ),
+        isError = isError,
+    )
+    if (isError) {
+        Text(
+            text = stringResource(R.string.passwords_do_not_match),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 4.dp)
+        )
+    }
+}
+
+@Composable
+private fun RegisterButton(enabled: Boolean, isLoading: Boolean, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().height(56.dp),
+        enabled = enabled,
+        shape = RoundedCornerShape(16.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+        ),
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+        } else {
+            Text(text = stringResource(R.string.sign_up), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@Composable
+private fun RegisterFooter(onSignIn: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(text = stringResource(R.string.have_account), style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(text = stringResource(R.string.sign_in), style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.clickable { onSignIn() })
+    }
+}
+
+@Composable
+private fun RegisterErrorSnackbar(error: String?, onDismiss: () -> Unit) {
+    error?.let {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+            Snackbar(
+                modifier = Modifier.padding(16.dp),
+                action = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.dismiss)) } }
+            ) { Text(it) }
+        }
+    }
+}
+
+// ── Previews ─────────────────────────────────────────────────────────────────
+
+@Preview(name = "Register – Light", showBackground = true, showSystemUi = true)
+@Composable
+private fun RegisterScreenLightPreview() {
+    HonariTheme(darkTheme = false) {
+        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            RegisterFormColumn(
+                displayName = "Bianca", onDisplayNameChange = {},
+                email = "bianca@honari.app", onEmailChange = {},
+                password = "password", onPasswordChange = {},
+                confirmPassword = "password", onConfirmChange = {},
+                passwordVisible = false, onTogglePassword = {},
+                confirmVisible = false, onToggleConfirm = {},
+                canSubmit = true, isLoading = false, onSubmit = {},
+                onSignIn = {}, onFocusMoveDown = {}, onFocusClear = {},
+            )
+        }
+    }
+}
+
+@Preview(name = "Register – Dark", showBackground = true, showSystemUi = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun RegisterScreenDarkPreview() {
+    HonariTheme(darkTheme = true) {
+        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            RegisterFormColumn(
+                displayName = "Bianca", onDisplayNameChange = {},
+                email = "bianca@honari.app", onEmailChange = {},
+                password = "password", onPasswordChange = {},
+                confirmPassword = "password", onConfirmChange = {},
+                passwordVisible = false, onTogglePassword = {},
+                confirmVisible = false, onToggleConfirm = {},
+                canSubmit = true, isLoading = false, onSubmit = {},
+                onSignIn = {}, onFocusMoveDown = {}, onFocusClear = {},
+            )
         }
     }
 }

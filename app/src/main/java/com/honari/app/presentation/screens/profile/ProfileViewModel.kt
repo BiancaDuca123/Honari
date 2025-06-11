@@ -1,99 +1,89 @@
 package com.honari.app.presentation.screens.profile
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.honari.app.domain.model.GenrePreference
-import com.honari.app.domain.model.Milestone
-import com.honari.app.domain.model.ProfileActivity
-import com.honari.app.domain.model.ProfileStats
-import com.honari.app.domain.model.ProfileUiState
-import com.honari.app.domain.model.YearlyStat
-import com.honari.app.presentation.theme.MoodDreamy
-import com.honari.app.presentation.theme.MoodNostalgic
-import com.honari.app.presentation.theme.MoodRomantic
-import com.honari.app.presentation.theme.PrimaryColor
-import com.honari.app.presentation.theme.RatingStarColor
-import com.honari.app.presentation.theme.TrendingColor
+import com.honari.app.domain.model.ReadingStatus
+import com.honari.app.domain.repository.AuthRepository
+import com.honari.app.domain.repository.LibraryRepository
+import com.honari.app.presentation.theme.UserPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/**
- * ViewModel for Profile screen.
- */
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class ProfileViewModel @Inject constructor() : ViewModel() {
+class ProfileViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
+    private val libraryRepository: LibraryRepository,
+    private val userPreferences: UserPreferences
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
     init {
-        loadProfileData()
+        loadProfile()
     }
 
-    private fun loadProfileData() {
+    private fun loadProfile() {
         viewModelScope.launch {
-            _uiState.value = ProfileUiState(
-                stats = ProfileStats(
-                    totalBooksRead = 42,
-                    booksThisYear = 15,
-                    reviewsWritten = 23,
-                    memberSince = "January 2024"
-                ),
-                yearlyStats = listOf(
-                    YearlyStat("Books Read", "28", Icons.Default.MenuBook, PrimaryColor),
-                    YearlyStat("Reading Hours", "156", Icons.Default.Timer, MoodDreamy),
-                    YearlyStat("Avg Rating", "4.3", Icons.Default.Star, RatingStarColor),
-                    YearlyStat("Streak Days", "47", Icons.Default.TrendingUp, TrendingColor)
-                ),
-                milestones = listOf(
-                    Milestone("1", "Night Reader", "100 hours of evening reading", true, "🌙"),
-                    Milestone("2", "Quote Collector", "50 quotes captured", true, "💫"),
-                    Milestone("3", "Circle Leader", "Active in 3+ circles", false, "👥"),
-                    Milestone("4", "Literary Explorer", "10 different genres", true, "🗺️")
-                ),
-                favoriteGenres = listOf(
-                    GenrePreference("Literary Fiction", 35, PrimaryColor),
-                    GenrePreference("Philosophy", 25, MoodDreamy),
-                    GenrePreference("Contemporary", 20, TrendingColor),
-                    GenrePreference("Sci-Fi", 12, MoodNostalgic),
-                    GenrePreference("Mystery", 8, MoodRomantic)
-                ),
-                recentActivities = listOf(
-                    ProfileActivity(
-                        "finished",
-                        "Finished reading \"The Midnight Library\"",
-                        "2 days ago",
-                        4.8f
-                    ),
-                    ProfileActivity(
-                        "joined",
-                        "Joined circle \"Tokyo Night Readers\"",
-                        "1 week ago",
-                        null
-                    ),
-                    ProfileActivity(
-                        "quote",
-                        "Captured a quote from \"Norwegian Wood\"",
-                        "3 days ago",
-                        null
-                    ),
-                    ProfileActivity(
-                        "started",
-                        "Started reading \"Klara and the Sun\"",
-                        "5 days ago",
-                        null
-                    )
-                )
-            )
+            _uiState.update { it.copy(isLoading = true) }
+            combine(
+                authRepository.getCurrentUser()
+                    .flatMapLatest { user ->
+                        if (user == null) {
+                            flowOf(null to emptyList())
+                        } else {
+                            libraryRepository.getUserLibrary(user.id).map { books -> user to books }
+                        }
+                    },
+                userPreferences.readingGoalFlow
+            ) { (user, books), goal ->
+                Triple(user, books, goal)
+            }
+                .catch { e -> _uiState.update { it.copy(isLoading = false, error = e.message) } }
+                .collect { (user, books, goal) ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            user = user,
+                            totalBooks = books.size,
+                            currentlyReading = books.count { b ->
+                                b.status ==
+                                    ReadingStatus.READING.name
+                            },
+                            booksRead = books.count { b ->
+                                b.status == ReadingStatus.FINISHED.name
+                            },
+                            wantToRead = books.count { b ->
+                                b.status ==
+                                    ReadingStatus.WANT_TO_READ.name
+                            },
+                            readingGoal = goal
+                        )
+                    }
+                }
+        }
+    }
+
+    fun updateReadingGoal(goal: Int) {
+        viewModelScope.launch { userPreferences.setReadingGoal(goal) }
+    }
+
+    fun signOut(onSignedOut: () -> Unit) {
+        viewModelScope.launch {
+            authRepository.logout()
+            onSignedOut()
         }
     }
 }

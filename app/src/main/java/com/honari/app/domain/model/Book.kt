@@ -2,18 +2,24 @@ package com.honari.app.domain.model
 
 /**
  * Domain model representing a book entity.
- * Clean architecture - no framework dependencies.
+ * Fields are `var` so Firestore can deserialize via bean reflection.
  */
 data class Book(
-    val id: String = "",
-    val title: String = "",
-    val author: String = "",
-    val rating: Float = 0f,
-    val imageUrl: String = "",
-    val mood: String = "",
-    val readers: Int = 0,
-    val description: String = "",
-    val category: String? = null,
-    val trend: String? = null,
-    val featured: Boolean = false
+    var id: String = "",
+    var title: String = "",
+    var author: String = "",
+    var rating: Float = 0f,
+    var imageUrl: String = "",
+    var readers: Int = 0,
+    var description: String = "",
+    var category: String? = null,
+    var isbn: String = "",
+    var pageCount: Int = 0,
+    var publisher: String = "",
+    var publishedDate: String = "",
+    // User-specific library fields
+    var status: String = "",
+    var progress: Int = 0,
+    var userRating: Float = 0f,
+    var dateAdded: String = ""
 )

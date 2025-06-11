@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Honari</string>
+    <string name="font_provider_authority">com.google.android.gms.fonts</string>
+
+    <!-- Navigare -->
+    <string name="nav_discover">Descoperă</string>
+    <string name="nav_library">Biblioteca</string>
+    <string name="nav_profile">Profil</string>
+    <string name="nav_scan">Scanează</string>
+
+    <!-- Comun -->
+    <string name="search">Caută</string>
+    <string name="see_all">Vezi tot</string>
+    <string name="loading">Se încarcă…</string>
+    <string name="error_generic">Ceva nu a mers bine</string>
+    <string name="retry">Reîncearcă</string>
+    <string name="dismiss">Închide</string>
+    <string name="back">Înapoi</string>
+
+    <!-- Ecran Descoperire -->
+    <string name="discover_title">Descoperă</string>
+    <string name="search_placeholder">Caută după titlu, autor…</string>
+    <string name="popular_books">Cărți Populare</string>
+    <string name="new_releases">Apariții Recente</string>
+    <string name="no_results">Niciun rezultat găsit</string>
+    <string name="tagline">Unde poveștile respiră</string>
+    <string name="readers_count">%s cititori</string>
+
+    <!-- Autentificare -->
+    <string name="welcome_back">Bine ai revenit</string>
+    <string name="sign_in_subtitle">Conectează-te și continuă călătoria ta literară</string>
+    <string name="toggle_password_visibility">Arată/ascunde parola</string>
+    <string name="or_divider">SAU</string>
+    <string name="continue_with_google">Continuă cu Google</string>
+    <string name="create_account">Creează cont</string>
+    <string name="register_subtitle">Alătură-te Honari și începe călătoria ta</string>
+    <string name="confirm_password">Confirmă parola</string>
+    <string name="passwords_do_not_match">Parolele nu coincid</string>
+    <string name="password_reset_title">Resetare parolă</string>
+    <string name="password_reset_instructions">Introdu adresa de email pentru a primi un link de resetare.</string>
+    <string name="send_reset_link">Trimite link de resetare</string>
+    <string name="password_reset_email_sent">Email de resetare trimis! Verifică căsuța de email.</string>
+    <string name="back_to_login">Înapoi la autentificare</string>
+    <string name="login">Autentificare</string>
+    <string name="register">Înregistrare</string>
+    <string name="email">Email</string>
+    <string name="password">Parolă</string>
+    <string name="display_name">Nume afișat</string>
+    <string name="forgot_password">Ai uitat parola?</string>
+    <string name="no_account">Nu ai cont?</string>
+    <string name="have_account">Ai deja un cont?</string>
+    <string name="sign_up">Înregistrează-te</string>
+    <string name="sign_in">Autentifică-te</string>
+
+    <!-- Detalii carte -->
+    <string name="about_book">Despre carte</string>
+    <string name="add_to_library">Adaugă în bibliotecă</string>
+    <string name="in_library">În bibliotecă</string>
+    <string name="remove_from_library">Elimină din bibliotecă</string>
+    <string name="by_author">de %s</string>
+    <string name="rating_with_count">%1$.1f • %2$s recenzii</string>
+
+    <!-- Profil -->
+    <string name="profile_title">Profil</string>
+    <string name="member_since">Membru din %s</string>
+    <string name="reading_progress">Progres lectură</string>
+    <string name="books_progress">%1$d / %2$d cărți</string>
+    <string name="currently_reading_count">Citești în prezent %d carte</string>
+    <string name="currently_reading_count_plural">Citești în prezent %d cărți</string>
+    <string name="currently_reading">Citesc acum</string>
+    <string name="books_finished">Cărți citite</string>
+    <string name="want_to_read">Vreau să citesc</string>
+    <string name="total_in_library">Total în bibliotecă</string>
+    <string name="sign_out">Deconectare</string>
+    <string name="reading_goal">Obiectiv lectură</string>
+    <string name="books_read">Cărți citite</string>
+    <string name="favorite_genres">Genuri favorite</string>
+    <string name="edit_profile">Editează profil</string>
+
+    <!-- Biblioteă -->
+    <string name="my_library">Biblioteca mea</string>
+    <string name="filter_all">Toate</string>
+    <string name="filter_reading">Citesc</string>
+    <string name="filter_read">Citit</string>
+    <string name="filter_want">Doresc</string>
+    <string name="empty_library_title">Nicio carte încă</string>
+    <string name="empty_library_subtitle">Folosește scanerul pentru a adăuga cărți</string>
+    <string name="finished">Terminat</string>
+    <string name="status_reading">Citesc acum</string>
+    <string name="status_finished">Am terminat de citit</string>
+    <string name="status_want">Vreau să citesc</string>
+    <string name="change_status">Schimbă statusul</string>
+
+    <!-- Scanare -->
+    <string name="scan_title">Scanează o carte</string>
+    <string name="scan_subtitle">Îndreaptă camera spre codul de bare</string>
+    <string name="manual_search">Caută manual</string>
+    <string name="search_by_title">Caută după titlu sau autor</string>
+    <string name="book_found">Carte găsită!</string>
+    <string name="add_to_my_library">Adaugă în biblioteca mea</string>
+    <string name="grant_camera_permission">Este necesară permisiunea pentru cameră</string>
+    <string name="grant_permission_button">Acordă permisiunea</string>
+</resources>
+
