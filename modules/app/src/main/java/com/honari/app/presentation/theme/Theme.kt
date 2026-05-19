@@ -16,75 +16,53 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-/**
- * Light color scheme for Honari app.
- */
 private val LightColorScheme = lightColorScheme(
-    primary = PrimaryColor,
-    onPrimary = Color.White,
-    primaryContainer = PrimaryLight,
-    onPrimaryContainer = PrimaryDark,
-
-    secondary = SecondaryColor,
-    onSecondary = Color.White,
-    secondaryContainer = SecondaryLight,
-    onSecondaryContainer = SecondaryDark,
-
-    background = BackgroundColor,
-    onBackground = PrimaryTextColor,
-
-    surface = SurfaceColor,
-    onSurface = PrimaryTextColor,
-    surfaceVariant = SurfaceLight,
-    onSurfaceVariant = SecondaryTextColor,
-
-    error = ErrorColor,
-    onError = Color.White,
-
-    outline = SecondaryTextColor,
-    outlineVariant = TertiaryTextColor
+    primary = PrimaryTeal,
+    onPrimary = CardWhite,
+    primaryContainer = PrimaryTealContainer,
+    onPrimaryContainer = PrimaryTealDark,
+    secondary = BrownHeadline,
+    onSecondary = CardWhite,
+    secondaryContainer = BrownContainer,
+    onSecondaryContainer = BrownHeadline,
+    background = BackgroundBeige,
+    onBackground = TextPrimary,
+    surface = CardWhite,
+    onSurface = TextPrimary,
+    surfaceVariant = SurfaceBeige,
+    onSurfaceVariant = TextSecondary,
+    error = ErrorRed,
+    onError = CardWhite,
+    outline = BrownLight,
+    outlineVariant = Color(0xFFE0D8CC),
 )
 
-/**
- * Dark color scheme for Honari app.
- * Currently using the same colors as light theme.
- * TODO: Implement proper dark theme colors.
- */
 private val DarkColorScheme = darkColorScheme(
-    primary = PrimaryColor,
-    onPrimary = Color.White,
-    primaryContainer = PrimaryLight,
-    onPrimaryContainer = PrimaryDark,
-
-    secondary = SecondaryColor,
-    onSecondary = Color.White,
-    secondaryContainer = SecondaryLight,
-    onSecondaryContainer = SecondaryDark,
-
-    background = Color(0xFF121212),
-    onBackground = Color(0xFFE0E0E0),
-
-    surface = Color(0xFF1E1E1E),
-    onSurface = Color(0xFFE0E0E0),
-    surfaceVariant = Color(0xFF2A2A2A),
-    onSurfaceVariant = Color(0xFFB0B0B0),
-
-    error = ErrorColor,
-    onError = Color.White,
-
-    outline = Color(0xFF666666),
-    outlineVariant = Color(0xFF444444)
+    primary = PrimaryTealLight,
+    onPrimary = Color(0xFF1A3A45),
+    primaryContainer = PrimaryTealDark,
+    onPrimaryContainer = PrimaryTealContainer,
+    secondary = BrownLight,
+    onSecondary = Color(0xFF2A1A08),
+    secondaryContainer = Color(0xFF3A2510),
+    onSecondaryContainer = BrownContainer,
+    background = Color(0xFF1A1815),
+    onBackground = Color(0xFFE8E4DC),
+    surface = Color(0xFF252220),
+    onSurface = Color(0xFFE8E4DC),
+    surfaceVariant = Color(0xFF302D2A),
+    onSurfaceVariant = Color(0xFFB0A898),
+    error = Color(0xFFFF6B6B),
+    onError = Color(0xFF3D0000),
+    outline = Color(0xFF706050),
+    outlineVariant = Color(0xFF4A403A),
 )
 
-/**
- * Main theme composable for Honari app.
- * Applies custom colors, typography, and system UI settings.
- */
 @Composable
 fun HonariTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
@@ -112,6 +90,6 @@ fun HonariTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = HonariTypography,
-        content = content
+        content = content,
     )
 }

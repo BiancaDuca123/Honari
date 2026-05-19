@@ -4,8 +4,6 @@ import app.cash.turbine.test
 import com.honari.app.domain.model.Book
 import com.honari.app.domain.model.ReadingStatus
 import com.honari.app.domain.repository.LibraryRepository
-import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +15,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
@@ -56,11 +55,24 @@ class LibraryViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     @Test
-    fun `initial state shows READ tab with filtered books`() = runTest {
+    fun `initial state has no filter selected and empty displayed books`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(ReadingStatus.READ, state.selectedTab)
+            assertNull(state.selectedFilter)
+            assertEquals(0, state.displayedBooks.size)
+            cancelAndConsumeRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `selecting CONTINUE_READING filter shows only READ books`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.selectFilter(LibraryFilter.CONTINUE_READING)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertEquals(LibraryFilter.CONTINUE_READING, state.selectedFilter)
             assertEquals(1, state.displayedBooks.size)
             assertEquals("Clean Code", state.displayedBooks.first().title)
             cancelAndConsumeRemainingEvents()
@@ -68,13 +80,13 @@ class LibraryViewModelTest {
     }
 
     @Test
-    fun `selecting WANT_TO_READ tab filters books correctly`() = runTest {
+    fun `selecting WISH_LIST filter shows only WANT_TO_READ books`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-        viewModel.selectTab(ReadingStatus.WANT_TO_READ)
+        viewModel.selectFilter(LibraryFilter.WISH_LIST)
         testDispatcher.scheduler.advanceUntilIdle()
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(ReadingStatus.WANT_TO_READ, state.selectedTab)
+            assertEquals(LibraryFilter.WISH_LIST, state.selectedFilter)
             assertEquals(1, state.displayedBooks.size)
             assertEquals("Kotlin in Action", state.displayedBooks.first().title)
             cancelAndConsumeRemainingEvents()
@@ -82,20 +94,28 @@ class LibraryViewModelTest {
     }
 
     @Test
-    fun `removeBook calls repository with correct id`() = runTest {
-        coEvery { libraryRepository.removeBook(any()) } returns Unit
+    fun `selecting ALL_BOOKS filter shows all books`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-        viewModel.removeBook("1")
+        viewModel.selectFilter(LibraryFilter.ALL_BOOKS)
         testDispatcher.scheduler.advanceUntilIdle()
-        coVerify { libraryRepository.removeBook("1") }
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertEquals(LibraryFilter.ALL_BOOKS, state.selectedFilter)
+            assertEquals(2, state.displayedBooks.size)
+            cancelAndConsumeRemainingEvents()
+        }
     }
 
     @Test
-    fun `moveBook calls updateStatus with correct params`() = runTest {
-        coEvery { libraryRepository.updateStatus(any(), any()) } returns Unit
+    fun `selecting same filter again deselects it`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
-        viewModel.moveBook("1", ReadingStatus.WANT_TO_READ)
+        viewModel.selectFilter(LibraryFilter.WISH_LIST)
+        viewModel.selectFilter(LibraryFilter.WISH_LIST)
         testDispatcher.scheduler.advanceUntilIdle()
-        coVerify { libraryRepository.updateStatus("1", ReadingStatus.WANT_TO_READ) }
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertNull(state.selectedFilter)
+            cancelAndConsumeRemainingEvents()
+        }
     }
 }

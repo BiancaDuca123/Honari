@@ -2,24 +2,22 @@ package com.honari.app.presentation.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Primary Colors
-val PrimaryColor = Color(0xFF2D4A6B)
-val PrimaryLight = Color(0xFF5B7599)
-val PrimaryDark = Color(0xFF0B2340)
+val PrimaryTeal = Color(0xFF4A7A8A)
+val PrimaryTealDark = Color(0xFF3A6070)
+val PrimaryTealLight = Color(0xFF6B9AA8)
+val PrimaryTealContainer = Color(0xFFD0E8EE)
 
-// Secondary Colors
-val SecondaryColor = Color(0xFF7B6BA6)
-val SecondaryLight = Color(0xFFA897D8)
-val SecondaryDark = Color(0xFF4E4276)
+val BrownHeadline = Color(0xFF5C3D11)
+val BrownLight = Color(0xFF9B7653)
+val BrownContainer = Color(0xFFF0E6D8)
 
-// Background Colors
-val BackgroundColor = Color(0xFFFEFEFE)
-val SurfaceColor = Color(0xFFFFFFFF)
-val SurfaceLight = Color(0xFFF5F7FA)
+val BackgroundBeige = Color(0xFFF2F0EB)
+val SurfaceBeige = Color(0xFFE8E6E0)
+val CardWhite = Color(0xFFFFFFFF)
 
-// Text Colors
-val PrimaryTextColor = Color(0xFF2D4A6B)
-val SecondaryTextColor = Color(0xFF8B9DC3)
-val TertiaryTextColor = Color(0xFFB5C0D3)
+val TextPrimary = Color(0xFF2D2D2D)
+val TextSecondary = Color(0xFF888888)
+val TextHint = Color(0xFFBBBBBB)
 
-val ErrorColor = Color(0xFFE57373)
+val ErrorRed = Color(0xFFD32F2F)
+val StarGold = Color(0xFFD4A843)

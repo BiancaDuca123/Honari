@@ -25,12 +25,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -60,8 +62,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -70,6 +72,10 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.honari.app.domain.model.ReadingStatus
+import com.honari.app.presentation.theme.BrownHeadline
+import com.honari.app.presentation.theme.CardWhite
+import com.honari.app.presentation.theme.ErrorRed
+import com.honari.app.presentation.theme.PrimaryTeal
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import androidx.compose.ui.geometry.Size as CanvasSize
@@ -84,7 +90,7 @@ private const val OVERLAY_ALPHA = 0.55f
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
-fun ScannerScreen(viewModel: ScannerViewModel = viewModel()) {
+fun ScannerScreen(viewModel: ScannerViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val cameraPermission = rememberPermissionState(Manifest.permission.CAMERA)
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -127,7 +133,11 @@ fun ScannerScreen(viewModel: ScannerViewModel = viewModel()) {
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(16.dp),
-        )
+        ) { data ->
+            Snackbar(containerColor = ErrorRed, contentColor = CardWhite) {
+                Text(text = data.visuals.message)
+            }
+        }
 
         if (uiState.isLoading) {
             Box(
@@ -136,7 +146,7 @@ fun ScannerScreen(viewModel: ScannerViewModel = viewModel()) {
                     .background(Color.Black.copy(alpha = 0.5f)),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator(color = Color.White)
+                CircularProgressIndicator(color = PrimaryTeal)
             }
         }
     }
@@ -145,6 +155,7 @@ fun ScannerScreen(viewModel: ScannerViewModel = viewModel()) {
         ModalBottomSheet(
             onDismissRequest = viewModel::dismissSheet,
             sheetState = sheetState,
+            containerColor = CardWhite,
         ) {
             BookInfoSheet(
                 uiState = uiState,
@@ -177,6 +188,7 @@ private fun BookInfoSheet(
                     text = book.title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
+                    color = BrownHeadline,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -214,7 +226,7 @@ private fun BookInfoSheet(
             Text(
                 text = "✓ Already in your library",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = PrimaryTeal,
                 fontWeight = FontWeight.SemiBold,
             )
         } else {
@@ -225,6 +237,10 @@ private fun BookInfoSheet(
                 Button(
                     onClick = { onAddToLibrary(ReadingStatus.READ) },
                     modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryTeal,
+                        contentColor = CardWhite,
+                    ),
                 ) {
                     Icon(
                         Icons.Default.CheckCircle,
@@ -237,6 +253,10 @@ private fun BookInfoSheet(
                 OutlinedButton(
                     onClick = { onAddToLibrary(ReadingStatus.WANT_TO_READ) },
                     modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = CardWhite,
+                        contentColor = PrimaryTeal,
+                    ),
                 ) {
                     Icon(
                         Icons.Default.FavoriteBorder,

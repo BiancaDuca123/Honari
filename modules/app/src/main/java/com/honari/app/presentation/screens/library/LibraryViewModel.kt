@@ -13,14 +13,29 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+enum class LibraryFilter(val title: String) {
+    CONTINUE_READING("Continue Reading"),
+    WISH_LIST("My Wish List"),
+    ALL_BOOKS("All Books"),
+}
+
 data class LibraryUiState(
     val isLoading: Boolean = false,
     val allBooks: List<Book> = emptyList(),
-    val selectedTab: ReadingStatus = ReadingStatus.READ,
+    val selectedFilter: LibraryFilter? = null,
     val error: String? = null,
 ) {
     val displayedBooks: List<Book>
-        get() = allBooks.filter { it.libraryStatus == selectedTab }
+        get() = when (selectedFilter) {
+            LibraryFilter.CONTINUE_READING -> allBooks.filter {
+                it.libraryStatus == ReadingStatus.READ
+            }
+            LibraryFilter.WISH_LIST -> allBooks.filter {
+                it.libraryStatus == ReadingStatus.WANT_TO_READ
+            }
+            LibraryFilter.ALL_BOOKS -> allBooks
+            null -> emptyList()
+        }
 }
 
 @HiltViewModel
@@ -40,15 +55,11 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
-    fun selectTab(status: ReadingStatus) {
-        _uiState.update { it.copy(selectedTab = status) }
-    }
-
-    fun removeBook(bookId: String) {
-        viewModelScope.launch { libraryRepository.removeBook(bookId) }
-    }
-
-    fun moveBook(bookId: String, status: ReadingStatus) {
-        viewModelScope.launch { libraryRepository.updateStatus(bookId, status) }
+    fun selectFilter(filter: LibraryFilter) {
+        _uiState.update { currentState ->
+            currentState.copy(
+                selectedFilter = if (currentState.selectedFilter == filter) null else filter,
+            )
+        }
     }
 }

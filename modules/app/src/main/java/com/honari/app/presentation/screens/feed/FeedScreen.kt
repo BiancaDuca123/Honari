@@ -1,6 +1,7 @@
 package com.honari.app.presentation.screens.feed
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,65 +16,71 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.honari.app.domain.model.Book
-import com.honari.app.presentation.theme.PrimaryColor
-import com.honari.app.presentation.theme.PrimaryLight
-import com.honari.app.presentation.theme.SurfaceLight
+import com.honari.app.presentation.theme.BackgroundBeige
+import com.honari.app.presentation.theme.BrownHeadline
+import com.honari.app.presentation.theme.CardWhite
+import com.honari.app.presentation.theme.ErrorRed
+import com.honari.app.presentation.theme.PrimaryTeal
+import com.honari.app.presentation.theme.StarGold
+import com.honari.app.presentation.theme.TextHint
+import com.honari.app.presentation.theme.TextPrimary
+import com.honari.app.presentation.theme.TextSecondary
+import java.util.Locale
+import kotlin.math.max
 
-private const val SKELETON_ITEM_COUNT = 6
-private const val SKELETON_LAST_INDEX = 2
-private const val SKELETON_LAST_WIDTH_FRACTION = 0.6f
-private const val SKELETON_BG_ALPHA = 0.08f
-private const val SKELETON_LINE_COUNT = 3
+private const val SKELETON_COUNT = 6
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedScreen(
-    onNavigateToProfile: () -> Unit,
-    viewModel: FeedViewModel = viewModel(),
+    onBookClick: (String) -> Unit,
+    viewModel: FeedViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var showSearch by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
@@ -82,77 +89,138 @@ fun FeedScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = {
-                Text(
-                    text = "Honari",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-            },
-            actions = {
-                IconButton(onClick = onNavigateToProfile) {
-                    Icon(
-                        imageVector = Icons.Default.AccountCircle,
-                        contentDescription = "Profile",
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.background,
-            ),
-        )
-
-        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-            OutlinedTextField(
-                value = uiState.searchQuery,
-                onValueChange = viewModel::onSearchQueryChanged,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Search books, authors...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (uiState.searchQuery.isNotEmpty()) {
-                        IconButton(onClick = viewModel::clearSearch) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear")
-                        }
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(24.dp),
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BackgroundBeige),
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            ExploreTopBar(onToggleSearch = { showSearch = !showSearch })
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                color = BrownHeadline.copy(alpha = 0.12f),
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            if (showSearch || uiState.searchQuery.isNotEmpty()) {
+                SearchField(
+                    query = uiState.searchQuery,
+                    onQueryChanged = viewModel::onSearchQueryChanged,
+                    onClear = {
+                        viewModel.clearSearch()
+                        showSearch = false
+                    },
+                )
+            }
+            when {
+                uiState.isLoading && uiState.books.isEmpty() -> LoadingFeed()
+                uiState.searchQuery.isNotEmpty() -> SearchResultsContent(
+                    books = uiState.searchResults,
+                    isSearching = uiState.isSearching,
+                    query = uiState.searchQuery,
+                    onBookClick = onBookClick,
+                )
+                else -> ExploreContent(
+                    books = uiState.books,
+                    isRefreshing = uiState.isLoading,
+                    onRefresh = viewModel::refreshFeed,
+                    onBookClick = onBookClick,
+                )
+            }
         }
 
         SnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.padding(horizontal = 16.dp),
-        )
-
-        when {
-            uiState.isLoading && uiState.books.isEmpty() -> LoadingFeed()
-            uiState.searchQuery.isNotEmpty() -> SearchResultsContent(
-                books = uiState.searchResults,
-                isSearching = uiState.isSearching,
-                query = uiState.searchQuery,
-            )
-            else -> FeedContent(
-                books = uiState.books,
-                isRefreshing = uiState.isLoading,
-                onRefresh = viewModel::refreshFeed,
-            )
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp),
+        ) { data ->
+            Snackbar(containerColor = ErrorRed, contentColor = CardWhite) {
+                Text(text = data.visuals.message)
+            }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FeedContent(
+private fun ExploreTopBar(onToggleSearch: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "Explore",
+            style = MaterialTheme.typography.headlineLarge,
+            color = BrownHeadline,
+            modifier = Modifier.weight(1f),
+        )
+        IconButton(onClick = onToggleSearch) {
+            Icon(Icons.Default.Search, contentDescription = "Search", tint = TextPrimary)
+        }
+        IconButton(onClick = {}) {
+            Icon(Icons.Default.Apps, contentDescription = "Grid view", tint = TextPrimary)
+        }
+    }
+}
+
+@Composable
+private fun SearchField(
+    query: String,
+    onQueryChanged: (String) -> Unit,
+    onClear: () -> Unit,
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChanged,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        placeholder = {
+            Text(
+                text = "Search books, authors...",
+                color = TextSecondary,
+            )
+        },
+        leadingIcon = {
+            Icon(
+                Icons.Default.Search,
+                contentDescription = null,
+                tint = TextSecondary,
+            )
+        },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = onClear) {
+                    Icon(
+                        Icons.Default.Clear,
+                        contentDescription = "Clear",
+                        tint = TextSecondary,
+                    )
+                }
+            }
+        },
+        singleLine = true,
+        shape = RoundedCornerShape(28.dp),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = CardWhite,
+            unfocusedContainerColor = CardWhite,
+            disabledContainerColor = CardWhite,
+            focusedIndicatorColor = PrimaryTeal,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
+            focusedTextColor = TextPrimary,
+            unfocusedTextColor = TextPrimary,
+            cursorColor = PrimaryTeal,
+        ),
+    )
+}
+
+@Composable
+private fun ExploreContent(
     books: List<Book>,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
+    onBookClick: (String) -> Unit,
 ) {
     PullToRefreshBox(
         isRefreshing = isRefreshing,
@@ -160,16 +228,37 @@ private fun FeedContent(
         modifier = Modifier.fillMaxSize(),
     ) {
         if (books.isEmpty()) {
-            EmptyState(
-                message = "No books in your feed. Pull to refresh or check your connection.",
-            )
+            EmptyState(message = "No books available yet. Pull to refresh and try again.")
         } else {
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+            val topPicks = books.take(max(2, books.size / 2))
+            val recommendations = books.drop(topPicks.size).ifEmpty { books.take(2) }
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                items(books, key = { it.id }) { book ->
-                    BookCard(book = book)
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        text = "Top Pick for You",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = BrownHeadline,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                    )
+                }
+                items(topPicks, key = { it.id }) { book ->
+                    ExploreBookCard(book = book, onClick = { onBookClick(book.id) })
+                }
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        text = "People with similar interests also like",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = BrownHeadline,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                    )
+                }
+                items(recommendations, key = { "similar-${it.id}" }) { book ->
+                    ExploreBookCard(book = book, onClick = { onBookClick(book.id) })
                 }
             }
         }
@@ -181,25 +270,24 @@ private fun SearchResultsContent(
     books: List<Book>,
     isSearching: Boolean,
     query: String,
+    onBookClick: (String) -> Unit,
 ) {
     when {
         isSearching -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                CircularProgressIndicator(color = PrimaryTeal)
             }
         }
 
-        books.isEmpty() -> EmptyState(message = "No books found for \"$query\"")
+        books.isEmpty() -> EmptyState(message = "No books found for \"$query\".")
 
         else -> {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 140.dp),
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            LazyColumn(
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(books, key = { it.id }) { book ->
-                    SearchGridItem(book = book)
+                    SearchResultItem(book = book, onClick = { onBookClick(book.id) })
                 }
             }
         }
@@ -207,19 +295,66 @@ private fun SearchResultsContent(
 }
 
 @Composable
-private fun BookCard(book: Book) {
+private fun ExploreBookCard(book: Book, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = CardWhite),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
-        Row(modifier = Modifier.padding(12.dp)) {
+        Column {
             AsyncImage(
                 model = book.imageUrl,
-                contentDescription = book.title,
+                contentDescription = null,
                 modifier = Modifier
-                    .size(width = 72.dp, height = 108.dp)
+                    .fillMaxWidth()
+                    .height(210.dp),
+                contentScale = ContentScale.Crop,
+            )
+            Column(modifier = Modifier.padding(10.dp)) {
+                Text(
+                    text = book.title,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = TextPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = book.authors.firstOrNull().orEmpty(),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontStyle = FontStyle.Italic,
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (book.averageRating > 0f) {
+                    RatingRow(rating = book.averageRating)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchResultItem(book: Book, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = CardWhite),
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AsyncImage(
+                model = book.imageUrl,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(width = 64.dp, height = 96.dp)
                     .clip(RoundedCornerShape(10.dp)),
                 contentScale = ContentScale.Crop,
             )
@@ -228,47 +363,19 @@ private fun BookCard(book: Book) {
                 Text(
                     text = book.title,
                     style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
+                    color = TextPrimary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (book.authors.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = book.authors.joinToString(", "),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontStyle = FontStyle.Italic,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+                Text(
+                    text = book.authors.joinToString(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 if (book.averageRating > 0f) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Star,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(14.dp),
-                        )
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Text(
-                            text = "%.1f".format(book.averageRating),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-                if (book.description.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = book.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    RatingRow(rating = book.averageRating)
                 }
             }
         }
@@ -276,103 +383,61 @@ private fun BookCard(book: Book) {
 }
 
 @Composable
-private fun SearchGridItem(book: Book) {
-    Card(
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-        Column(modifier = Modifier.padding(10.dp)) {
-            AsyncImage(
-                model = book.imageUrl,
-                contentDescription = book.title,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(190.dp)
-                    .clip(RoundedCornerShape(14.dp)),
-                contentScale = ContentScale.Crop,
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = book.title,
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (book.authors.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = book.authors.joinToString(", "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
+private fun RatingRow(rating: Float) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = Icons.Default.Star,
+            contentDescription = null,
+            tint = StarGold,
+            modifier = Modifier.size(12.dp),
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = String.format(Locale.US, "%.1f", rating),
+            style = MaterialTheme.typography.labelSmall,
+            color = TextSecondary,
+        )
     }
 }
 
 @Composable
 private fun LoadingFeed() {
-    LazyColumn(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        items(SKELETON_ITEM_COUNT) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            ) {
-                Row(modifier = Modifier.padding(12.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .size(width = 72.dp, height = 108.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(
-                                        SurfaceLight,
-                                        PrimaryLight.copy(alpha = 0.12f),
-                                        SurfaceLight,
-                                    ),
-                                ),
-                            ),
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        repeat(SKELETON_LINE_COUNT) { index ->
-                            val widthFraction = if (index == SKELETON_LAST_INDEX) {
-                                SKELETON_LAST_WIDTH_FRACTION
-                            } else {
-                                1f
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(widthFraction)
-                                    .height(14.dp)
-                                    .clip(CircleShape)
-                                    .background(PrimaryColor.copy(alpha = SKELETON_BG_ALPHA)),
-                            )
-                            Spacer(modifier = Modifier.height(10.dp))
-                        }
-                    }
-                }
-            }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Text(
+                text = "Top Pick for You",
+                style = MaterialTheme.typography.headlineSmall,
+                color = BrownHeadline,
+                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+            )
+        }
+        items(SKELETON_COUNT) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(240.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(TextHint.copy(alpha = 0.3f)),
+            )
         }
     }
 }
 
 @Composable
 private fun EmptyState(message: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
         Text(
             text = message,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = TextSecondary,
             modifier = Modifier.padding(24.dp),
         )
     }
