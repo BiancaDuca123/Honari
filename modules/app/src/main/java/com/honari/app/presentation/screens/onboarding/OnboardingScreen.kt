@@ -6,14 +6,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.LibraryBooks
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,11 +33,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.honari.app.presentation.theme.BackgroundBeige
 import com.honari.app.presentation.theme.BrownHeadline
 import com.honari.app.presentation.theme.CardWhite
 import com.honari.app.presentation.theme.PrimaryTeal
-import com.honari.app.presentation.theme.TextSecondary
 
 private val OnboardingIconSize = 120.dp
 private val PillShape = androidx.compose.foundation.shape.RoundedCornerShape(32.dp)
@@ -78,7 +79,9 @@ fun OnboardingScreen(onFinished: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundBeige)
+            .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
+            .navigationBarsPadding()
             .padding(horizontal = 24.dp, vertical = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -92,7 +95,7 @@ fun OnboardingScreen(onFinished: () -> Unit) {
             trackColor = CardWhite,
         )
         Spacer(modifier = Modifier.weight(1f))
-        androidx.compose.material3.Icon(
+        Icon(
             imageVector = slide.icon,
             contentDescription = null,
             tint = PrimaryTeal,
@@ -109,7 +112,7 @@ fun OnboardingScreen(onFinished: () -> Unit) {
         Text(
             text = slide.description,
             style = MaterialTheme.typography.bodyLarge,
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.weight(1f))

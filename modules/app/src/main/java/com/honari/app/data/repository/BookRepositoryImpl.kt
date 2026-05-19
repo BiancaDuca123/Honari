@@ -21,25 +21,20 @@ class BookRepositoryImpl @Inject constructor(
         query: String,
         maxResults: Int,
     ): Flow<List<Book>> = flow {
-        emit(
-            runCatching {
-                api.searchBooks(
-                    query = query,
-                    maxResults = maxResults,
-                    orderBy = "newest",
-                    apiKey = apiKey,
-                ).items?.map { it.toDomain() } ?: emptyList()
-            }.getOrElse { emptyList() },
-        )
+        val books = api.searchBooks(
+            query = query,
+            maxResults = maxResults,
+            orderBy = "newest",
+            apiKey = apiKey,
+        ).items?.map { it.toDomain() } ?: emptyList()
+        emit(books)
     }
 
     override suspend fun searchBooks(query: String, maxResults: Int): List<Book> =
-        runCatching {
-            api.searchBooks(query = query, maxResults = maxResults, apiKey = apiKey)
-                .items
-                ?.map { it.toDomain() }
-                ?: emptyList()
-        }.getOrElse { emptyList() }
+        api.searchBooks(query = query, maxResults = maxResults, apiKey = apiKey)
+            .items
+            ?.map { it.toDomain() }
+            ?: emptyList()
 
     override suspend fun getBookById(googleBooksId: String): Book? =
         runCatching { api.getBookById(googleBooksId, apiKey).toDomain() }.getOrNull()

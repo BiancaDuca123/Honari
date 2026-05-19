@@ -8,11 +8,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -50,7 +53,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,15 +61,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.honari.app.domain.model.Book
-import com.honari.app.presentation.theme.BackgroundBeige
 import com.honari.app.presentation.theme.BrownHeadline
 import com.honari.app.presentation.theme.CardWhite
 import com.honari.app.presentation.theme.ErrorRed
 import com.honari.app.presentation.theme.PrimaryTeal
 import com.honari.app.presentation.theme.StarGold
-import com.honari.app.presentation.theme.TextHint
-import com.honari.app.presentation.theme.TextPrimary
-import com.honari.app.presentation.theme.TextSecondary
 import java.util.Locale
 import kotlin.math.max
 
@@ -92,14 +90,10 @@ fun FeedScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundBeige),
+            .background(MaterialTheme.colorScheme.background),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             ExploreTopBar(onToggleSearch = { showSearch = !showSearch })
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 20.dp),
-                color = BrownHeadline.copy(alpha = 0.12f),
-            )
             if (showSearch || uiState.searchQuery.isNotEmpty()) {
                 SearchField(
                     query = uiState.searchQuery,
@@ -142,24 +136,45 @@ fun FeedScreen(
 
 @Composable
 private fun ExploreTopBar(onToggleSearch: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = "Explore",
-            style = MaterialTheme.typography.headlineLarge,
-            color = BrownHeadline,
-            modifier = Modifier.weight(1f),
+    val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = 20.dp,
+                    top = statusBarPadding + 16.dp,
+                    end = 12.dp,
+                    bottom = 16.dp,
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Explore",
+                style = MaterialTheme.typography.headlineLarge,
+                color = BrownHeadline,
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(onClick = onToggleSearch) {
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = "Search",
+                    tint = MaterialTheme.colorScheme.onBackground,
+                )
+            }
+            IconButton(onClick = {}) {
+                Icon(
+                    Icons.Default.Apps,
+                    contentDescription = "Grid view",
+                    tint = MaterialTheme.colorScheme.onBackground,
+                )
+            }
+        }
+        HorizontalDivider(
+            modifier = Modifier.padding(horizontal = 20.dp),
+            color = BrownHeadline.copy(alpha = 0.12f),
         )
-        IconButton(onClick = onToggleSearch) {
-            Icon(Icons.Default.Search, contentDescription = "Search", tint = TextPrimary)
-        }
-        IconButton(onClick = {}) {
-            Icon(Icons.Default.Apps, contentDescription = "Grid view", tint = TextPrimary)
-        }
     }
 }
 
@@ -178,14 +193,14 @@ private fun SearchField(
         placeholder = {
             Text(
                 text = "Search books, authors...",
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
         leadingIcon = {
             Icon(
                 Icons.Default.Search,
                 contentDescription = null,
-                tint = TextSecondary,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
         trailingIcon = {
@@ -194,7 +209,7 @@ private fun SearchField(
                     Icon(
                         Icons.Default.Clear,
                         contentDescription = "Clear",
-                        tint = TextSecondary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -202,14 +217,14 @@ private fun SearchField(
         singleLine = true,
         shape = RoundedCornerShape(28.dp),
         colors = TextFieldDefaults.colors(
-            focusedContainerColor = CardWhite,
-            unfocusedContainerColor = CardWhite,
-            disabledContainerColor = CardWhite,
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            disabledContainerColor = MaterialTheme.colorScheme.surface,
             focusedIndicatorColor = PrimaryTeal,
-            unfocusedIndicatorColor = Color.Transparent,
-            disabledIndicatorColor = Color.Transparent,
-            focusedTextColor = TextPrimary,
-            unfocusedTextColor = TextPrimary,
+            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+            disabledIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
             cursorColor = PrimaryTeal,
         ),
     )
@@ -239,22 +254,15 @@ private fun ExploreContent(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    Text(
-                        text = "Top Pick for You",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = BrownHeadline,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-                    )
+                    SectionTitle(title = "Top Pick for You", topPadding = 8.dp)
                 }
                 items(topPicks, key = { it.id }) { book ->
                     ExploreBookCard(book = book, onClick = { onBookClick(book.id) })
                 }
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    Text(
-                        text = "People with similar interests also like",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = BrownHeadline,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                    SectionTitle(
+                        title = "People with similar interests also like",
+                        topPadding = 12.dp,
                     )
                 }
                 items(recommendations, key = { "similar-${it.id}" }) { book ->
@@ -263,6 +271,16 @@ private fun ExploreContent(
             }
         }
     }
+}
+
+@Composable
+private fun SectionTitle(title: String, topPadding: androidx.compose.ui.unit.Dp) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.headlineSmall,
+        color = BrownHeadline,
+        modifier = Modifier.padding(top = topPadding, bottom = 4.dp),
+    )
 }
 
 @Composable
@@ -301,7 +319,7 @@ private fun ExploreBookCard(book: Book, onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = CardWhite),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column {
@@ -310,14 +328,14 @@ private fun ExploreBookCard(book: Book, onClick: () -> Unit) {
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(210.dp),
+                    .height(240.dp),
                 contentScale = ContentScale.Crop,
             )
             Column(modifier = Modifier.padding(10.dp)) {
                 Text(
                     text = book.title,
                     style = MaterialTheme.typography.labelLarge,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -325,7 +343,7 @@ private fun ExploreBookCard(book: Book, onClick: () -> Unit) {
                     text = book.authors.firstOrNull().orEmpty(),
                     style = MaterialTheme.typography.labelSmall,
                     fontStyle = FontStyle.Italic,
-                    color = TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -344,7 +362,7 @@ private fun SearchResultItem(book: Book, onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = CardWhite),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -363,14 +381,14 @@ private fun SearchResultItem(book: Book, onClick: () -> Unit) {
                 Text(
                     text = book.title,
                     style = MaterialTheme.typography.titleSmall,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = book.authors.joinToString(),
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -385,17 +403,17 @@ private fun SearchResultItem(book: Book, onClick: () -> Unit) {
 @Composable
 private fun RatingRow(rating: Float) {
     Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = String.format(Locale.US, "%.1f", rating),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.width(4.dp))
         Icon(
             imageVector = Icons.Default.Star,
             contentDescription = null,
             tint = StarGold,
             modifier = Modifier.size(12.dp),
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = String.format(Locale.US, "%.1f", rating),
-            style = MaterialTheme.typography.labelSmall,
-            color = TextSecondary,
         )
     }
 }
@@ -409,12 +427,7 @@ private fun LoadingFeed() {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
-            Text(
-                text = "Top Pick for You",
-                style = MaterialTheme.typography.headlineSmall,
-                color = BrownHeadline,
-                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-            )
+            SectionTitle(title = "Top Pick for You", topPadding = 8.dp)
         }
         items(SKELETON_COUNT) {
             Box(
@@ -422,7 +435,7 @@ private fun LoadingFeed() {
                     .fillMaxWidth()
                     .height(240.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(TextHint.copy(alpha = 0.3f)),
+                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
             )
         }
     }
@@ -437,7 +450,7 @@ private fun EmptyState(message: String) {
         Text(
             text = message,
             style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(24.dp),
         )
     }

@@ -1,18 +1,22 @@
 package com.honari.app.presentation.screens.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -49,56 +53,69 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.honari.app.domain.model.Book
-import com.honari.app.presentation.theme.BackgroundBeige
 import com.honari.app.presentation.theme.BrownHeadline
 import com.honari.app.presentation.theme.CardWhite
 import com.honari.app.presentation.theme.ErrorRed
 import com.honari.app.presentation.theme.PrimaryTeal
-import com.honari.app.presentation.theme.TextPrimary
-import com.honari.app.presentation.theme.TextSecondary
 
-private val HeaderHeight = 200.dp
-private val HeaderPanelHeight = 150.dp
-private val AvatarSize = 120.dp
-private val AvatarOffset = 50.dp
+private const val DEFAULT_USERNAME = "reader"
+private const val DEFAULT_DISPLAY_NAME = "Honari Reader"
+private const val DEFAULT_BIO = "Book enthusiast · Reading is life"
+private val HeaderVisualHeight = 140.dp
+private val AvatarSize = 100.dp
+private val AvatarOverlap = 50.dp
 
 @Composable
-fun ProfileScreen(viewModel: ProfileViewModel = hiltViewModel()) {
+fun ProfileScreen(
+    onToggleDarkMode: (Boolean) -> Unit,
+    viewModel: ProfileViewModel = hiltViewModel(),
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val username = uiState.user?.email?.substringBefore('@').orEmpty().ifEmpty { "reader" }
+    val username = uiState.user?.email?.substringBefore('@').orEmpty().ifEmpty { DEFAULT_USERNAME }
 
+    ProfileContent(
+        uiState = uiState,
+        username = username,
+        onToggleDarkMode = { enabled ->
+            viewModel.setDarkMode(enabled)
+            onToggleDarkMode(enabled)
+        },
+        onLogout = viewModel::logout,
+    )
+}
+
+@Composable
+private fun ProfileContent(
+    uiState: ProfileUiState,
+    username: String,
+    onToggleDarkMode: (Boolean) -> Unit,
+    onLogout: () -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundBeige)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         ProfileHeader(photoUrl = uiState.user?.photoUrl)
-        Spacer(modifier = Modifier.height(72.dp))
+        Spacer(modifier = Modifier.height(60.dp))
         Text(
-            text = uiState.user?.displayName ?: "Honari Reader",
+            text = uiState.user?.displayName ?: DEFAULT_DISPLAY_NAME,
             style = MaterialTheme.typography.headlineMedium,
-            color = TextPrimary,
+            color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,
         )
         Text(
             text = "@$username",
             style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "Book enthusiast",
+            text = DEFAULT_BIO,
             style = MaterialTheme.typography.bodySmall,
-            color = TextSecondary,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Discovering memorable stories, collecting favorites, and sharing every " +
-                "great read along the way.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 28.dp),
         )
@@ -113,8 +130,8 @@ fun ProfileScreen(viewModel: ProfileViewModel = hiltViewModel()) {
         Spacer(modifier = Modifier.height(16.dp))
         SettingsSection(
             isDarkMode = uiState.isDarkMode,
-            onToggleDarkMode = viewModel::toggleDarkMode,
-            onLogout = viewModel::logout,
+            onToggleDarkMode = onToggleDarkMode,
+            onLogout = onLogout,
         )
         Spacer(modifier = Modifier.height(24.dp))
     }
@@ -122,35 +139,40 @@ fun ProfileScreen(viewModel: ProfileViewModel = hiltViewModel()) {
 
 @Composable
 private fun ProfileHeader(photoUrl: String?) {
+    val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(HeaderHeight),
+            .height(HeaderVisualHeight + AvatarOverlap + statusBarPadding),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(HeaderPanelHeight)
+                .height(HeaderVisualHeight + statusBarPadding)
                 .background(PrimaryTeal),
         ) {
-            IconButton(
-                onClick = {},
+            Row(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp),
+                    .fillMaxWidth()
+                    .padding(top = statusBarPadding, start = 12.dp, end = 8.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Settings",
-                    tint = CardWhite,
-                )
+                IconButton(onClick = {}) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Settings",
+                        tint = CardWhite,
+                    )
+                }
             }
         }
         ProfileAvatar(
             photoUrl = photoUrl,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .offset(y = AvatarOffset),
+                .offset(y = AvatarOverlap),
         )
     }
 }
@@ -160,8 +182,9 @@ private fun ProfileAvatar(photoUrl: String?, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .size(AvatarSize)
+            .border(width = 3.dp, color = CardWhite, shape = CircleShape)
             .clip(CircleShape)
-            .background(CardWhite),
+            .background(MaterialTheme.colorScheme.surface),
         contentAlignment = Alignment.Center,
     ) {
         if (photoUrl.isNullOrEmpty()) {
@@ -176,7 +199,7 @@ private fun ProfileAvatar(photoUrl: String?, modifier: Modifier = Modifier) {
                     imageVector = Icons.Default.Person,
                     contentDescription = null,
                     tint = PrimaryTeal,
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(44.dp),
                 )
             }
         } else {
@@ -199,7 +222,7 @@ private fun StatsRow(totalRead: Int, wantToRead: Int, totalBooks: Int) {
             .fillMaxWidth()
             .padding(horizontal = 20.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardWhite),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(
             modifier = Modifier
@@ -209,9 +232,15 @@ private fun StatsRow(totalRead: Int, wantToRead: Int, totalBooks: Int) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             StatItem(count = totalRead, label = "Read")
-            VerticalDivider(modifier = Modifier.height(32.dp))
+            VerticalDivider(
+                modifier = Modifier.height(40.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+            )
             StatItem(count = wantToRead, label = "Want to Read")
-            VerticalDivider(modifier = Modifier.height(32.dp))
+            VerticalDivider(
+                modifier = Modifier.height(40.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+            )
             StatItem(count = totalBooks, label = "Total")
         }
     }
@@ -222,13 +251,13 @@ private fun StatItem(count: Int, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = count.toString(),
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.headlineMedium,
             color = BrownHeadline,
         )
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -236,7 +265,7 @@ private fun StatItem(count: Int, label: String) {
 @Composable
 private fun BooksSection(allBooks: List<Book>) {
     Text(
-        text = "My Books",
+        text = "Publications",
         style = MaterialTheme.typography.headlineSmall,
         color = BrownHeadline,
         modifier = Modifier
@@ -248,7 +277,7 @@ private fun BooksSection(allBooks: List<Book>) {
         Text(
             text = "Your publications will appear here once you add books to your collection.",
             style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 20.dp),
         )
     } else {
@@ -294,7 +323,7 @@ private fun BookCoverCard(book: Book) {
 @Composable
 private fun SettingsSection(
     isDarkMode: Boolean,
-    onToggleDarkMode: () -> Unit,
+    onToggleDarkMode: (Boolean) -> Unit,
     onLogout: () -> Unit,
 ) {
     Card(
@@ -302,14 +331,17 @@ private fun SettingsSection(
             .fillMaxWidth()
             .padding(horizontal = 20.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardWhite),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             SettingToggleRow(
                 checked = isDarkMode,
-                onCheckedChange = { onToggleDarkMode() },
+                onCheckedChange = onToggleDarkMode,
             )
-            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 16.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+            )
             Button(
                 onClick = onLogout,
                 modifier = Modifier.fillMaxWidth(),
@@ -343,12 +375,12 @@ private fun SettingToggleRow(checked: Boolean, onCheckedChange: (Boolean) -> Uni
             Text(
                 text = "Dark Mode",
                 style = MaterialTheme.typography.titleSmall,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 text = "Switch between light and dark reading moods.",
                 style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         Switch(checked = checked, onCheckedChange = onCheckedChange)

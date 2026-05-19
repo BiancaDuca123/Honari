@@ -2,6 +2,7 @@ package com.honari.app.presentation.screens.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.honari.app.data.local.preferences.PreferencesDataSource
 import com.honari.app.domain.model.Book
 import com.honari.app.domain.model.ReadingStatus
 import com.honari.app.domain.model.User
@@ -27,9 +28,10 @@ data class ProfileUiState(
 class ProfileViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val libraryRepository: LibraryRepository,
+    private val preferences: PreferencesDataSource,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ProfileUiState())
+    private val _uiState = MutableStateFlow(ProfileUiState(isDarkMode = preferences.isDarkMode))
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
     init {
@@ -41,8 +43,9 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch { authRepository.logout() }
     }
 
-    fun toggleDarkMode() {
-        _uiState.update { it.copy(isDarkMode = !it.isDarkMode) }
+    fun setDarkMode(enabled: Boolean) {
+        preferences.isDarkMode = enabled
+        _uiState.update { it.copy(isDarkMode = enabled) }
     }
 
     private fun observeUser() {

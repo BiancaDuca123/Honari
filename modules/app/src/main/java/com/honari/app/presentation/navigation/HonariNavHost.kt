@@ -1,6 +1,5 @@
 package com.honari.app.presentation.navigation
 
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -8,8 +7,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,7 +18,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.CollectionsBookmark
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -25,13 +25,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -52,12 +49,10 @@ import com.honari.app.presentation.screens.onboarding.OnboardingScreen
 import com.honari.app.presentation.screens.profile.ProfileScreen
 import com.honari.app.presentation.screens.scanner.ScannerScreen
 import com.honari.app.presentation.screens.splash.SplashScreen
-import com.honari.app.presentation.theme.BackgroundBeige
 import com.honari.app.presentation.theme.BrownHeadline
+import com.honari.app.presentation.theme.PrimaryTeal
 import com.honari.app.presentation.theme.TextSecondary
 
-private const val PREFERENCES_NAME = "honari_preferences"
-private const val ONBOARDING_KEY = "onboarding_done"
 private const val BOOK_ID_ARGUMENT = "bookId"
 private const val BOTTOM_BAR_INDICATOR_WIDTH = 0.46f
 
@@ -72,15 +67,9 @@ private val bottomNavRoutes = navItems.map { it.screen.route }.toSet()
 private val publicRoutes = setOf(Screen.Splash.route, Screen.Onboarding.route, Screen.Auth.route)
 
 @Composable
-fun HonariNavHost() {
-    val context = LocalContext.current
-    val preferences = remember {
-        context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
-    }
-    var onboardingDone by remember {
-        mutableStateOf(preferences.getBoolean(ONBOARDING_KEY, false))
-    }
+fun HonariNavHost(onToggleDarkMode: (Boolean) -> Unit) {
     val authViewModel: AuthViewModel = hiltViewModel()
+    val navViewModel: NavViewModel = hiltViewModel()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     val navController = rememberNavController()
     val entry by navController.currentBackStackEntryAsState()
@@ -100,6 +89,7 @@ fun HonariNavHost() {
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0),
         bottomBar = {
             if (authState.isAuthenticated && currentRoute in bottomNavRoutes) {
                 HonariBottomBar(
@@ -116,7 +106,7 @@ fun HonariNavHost() {
                 )
             }
         },
-        containerColor = BackgroundBeige,
+        containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         NavHost(
             navController = navController,
@@ -127,7 +117,7 @@ fun HonariNavHost() {
                 SplashScreen(
                     onFinished = {
                         val nextRoute = when {
-                            !onboardingDone -> Screen.Onboarding.route
+                            !navViewModel.isOnboardingDone -> Screen.Onboarding.route
                             authState.isAuthenticated -> Screen.Library.route
                             else -> Screen.Auth.route
                         }
@@ -140,8 +130,7 @@ fun HonariNavHost() {
             composable(Screen.Onboarding.route) {
                 OnboardingScreen(
                     onFinished = {
-                        preferences.edit().putBoolean(ONBOARDING_KEY, true).apply()
-                        onboardingDone = true
+                        navViewModel.markOnboardingDone()
                         val nextRoute = if (authState.isAuthenticated) {
                             Screen.Library.route
                         } else {
@@ -176,7 +165,7 @@ fun HonariNavHost() {
                 )
             }
             composable(Screen.Profile.route) {
-                ProfileScreen()
+                ProfileScreen(onToggleDarkMode = onToggleDarkMode)
             }
             composable(Screen.Scanner.route) {
                 ScannerScreen()
@@ -196,8 +185,11 @@ fun HonariNavHost() {
 
 @Composable
 private fun HonariBottomBar(currentRoute: String?, onNavigate: (String) -> Unit) {
-    Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    Column(
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.background)
+            .navigationBarsPadding(),
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -231,7 +223,7 @@ private fun androidx.compose.foundation.layout.RowScope.BottomBarItem(
         Icon(
             imageVector = item.icon,
             contentDescription = item.label,
-            tint = if (selected) BrownHeadline else TextSecondary,
+            tint = if (selected) PrimaryTeal else TextSecondary,
             modifier = Modifier.size(22.dp),
         )
         Spacer(modifier = Modifier.height(4.dp))
@@ -247,7 +239,7 @@ private fun androidx.compose.foundation.layout.RowScope.BottomBarItem(
                 .height(3.dp)
                 .fillMaxWidth(BOTTOM_BAR_INDICATOR_WIDTH)
                 .background(
-                    color = if (selected) BrownHeadline else BackgroundBeige,
+                    color = if (selected) PrimaryTeal else Color.Transparent,
                     shape = RoundedCornerShape(999.dp),
                 ),
         )

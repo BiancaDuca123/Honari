@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.honari.app.domain.model.Book
@@ -32,8 +33,6 @@ import com.honari.app.domain.model.ReadingStatus
 import com.honari.app.presentation.theme.BrownHeadline
 import com.honari.app.presentation.theme.CardWhite
 import com.honari.app.presentation.theme.PrimaryTeal
-import com.honari.app.presentation.theme.TextPrimary
-import com.honari.app.presentation.theme.TextSecondary
 
 @Composable
 internal fun LibraryActionButtonContent(label: String) {
@@ -45,6 +44,7 @@ internal fun LibraryActionButtonContent(label: String) {
             text = label,
             style = MaterialTheme.typography.titleMedium,
             color = CardWhite,
+            fontWeight = FontWeight.Bold,
         )
         Spacer(modifier = Modifier.weight(1f))
         Icon(
@@ -112,7 +112,7 @@ private fun EmptyLibraryState(message: String) {
         Text(
             text = message,
             style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 32.dp),
         )
     }
@@ -135,7 +135,7 @@ private fun LibraryBookRow(book: Book) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardWhite),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -147,7 +147,7 @@ private fun LibraryBookRow(book: Book) {
                 Text(
                     text = book.title,
                     style = MaterialTheme.typography.titleSmall,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -155,7 +155,7 @@ private fun LibraryBookRow(book: Book) {
                 Text(
                     text = book.authors.joinToString().ifEmpty { "Unknown author" },
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
