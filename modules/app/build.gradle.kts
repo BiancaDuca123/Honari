@@ -1,4 +1,10 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+private val localProperties = Properties().also { props ->
+    rootProject.file("local.properties").takeIf { it.exists() }
+        ?.inputStream()?.use(props::load)
+}
 
 plugins {
     alias(libs.plugins.android.application)
@@ -25,7 +31,7 @@ android {
         buildConfigField(
             "String",
             "GOOGLE_BOOKS_API_KEY",
-            "\"${project.findProperty("GOOGLE_BOOKS_API_KEY") ?: ""}\"",
+            "\"${localProperties.getProperty("GOOGLE_BOOKS_API_KEY", "")}\"",
         )
     }
 
