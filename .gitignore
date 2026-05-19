@@ -18,3 +18,4 @@
 *.out
 *.zip
 *.tar.gz
+local.properties
