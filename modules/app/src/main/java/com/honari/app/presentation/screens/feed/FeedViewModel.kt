@@ -44,8 +44,14 @@ class FeedViewModel @Inject constructor(
         feedJob?.cancel()
         feedJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            bookRepository.getFeedBooks().collect { books ->
-                _uiState.update { it.copy(isLoading = false, books = books) }
+            runCatching {
+                bookRepository.getFeedBooks().collect { books ->
+                    _uiState.update { it.copy(isLoading = false, books = books) }
+                }
+            }.onFailure { throwable ->
+                _uiState.update {
+                    it.copy(isLoading = false, error = throwable.message ?: "Failed to load books")
+                }
             }
         }
     }
