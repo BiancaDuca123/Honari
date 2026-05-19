@@ -1,84 +1,43 @@
 package com.honari.app.data.repository
 
-import com.google.firebase.firestore.FirebaseFirestore
+import com.honari.app.BuildConfig
+import com.honari.app.data.remote.api.GoogleBooksApiService
+import com.honari.app.data.remote.mapper.toDomain
 import com.honari.app.domain.model.Book
 import com.honari.app.domain.repository.BookRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
+import javax.inject.Singleton
 
-/**
- * Implementation of BookRepository using Firebase Firestore.
- * Follows Dependency Inversion Principle.
- */
+@Singleton
 class BookRepositoryImpl @Inject constructor(
-    private val firestore: FirebaseFirestore
+    private val api: GoogleBooksApiService,
 ) : BookRepository {
 
-    override fun getFeaturedBooks(): Flow<List<Book>> = flow {
-        try {
-            val snapshot = firestore.collection("books")
-                .whereEqualTo("featured", true)
-                .get()
-                .await()
+    private val apiKey get() = BuildConfig.GOOGLE_BOOKS_API_KEY
 
-            val books = snapshot.documents.mapNotNull { doc ->
-                doc.toObject(Book::class.java)?.copy(id = doc.id)
-            }
-            emit(books)
-        } catch (e: Exception) {
-            emit(emptyList())
-        }
+    override fun getFeedBooks(query: String, maxResults: Int): Flow<List<Book>> = flow {
+        emit(
+            runCatching {
+                api.searchBooks(query = query, maxResults = maxResults, orderBy = "newest", apiKey = apiKey)
+                    .items?.map { it.toDomain() } ?: emptyList()
+            }.getOrElse { emptyList() },
+        )
     }
 
-    override fun getTrendingBooks(): Flow<List<Book>> = flow {
-        try {
-            val snapshot = firestore.collection("books")
-                .whereNotEqualTo("trend", null)
-                .get()
-                .await()
+    override suspend fun searchBooks(query: String, maxResults: Int): List<Book> =
+        runCatching {
+            api.searchBooks(query = query, maxResults = maxResults, apiKey = apiKey)
+                .items?.map { it.toDomain() } ?: emptyList()
+        }.getOrElse { emptyList() }
 
-            val books = snapshot.documents.mapNotNull { doc ->
-                doc.toObject(Book::class.java)?.copy(id = doc.id)
-            }
-            emit(books)
-        } catch (e: Exception) {
-            emit(emptyList())
-        }
-    }
+    override suspend fun getBookById(googleBooksId: String): Book? =
+        runCatching { api.getBookById(googleBooksId, apiKey).toDomain() }.getOrNull()
 
-    override fun getBooksByMood(mood: String): Flow<List<Book>> = flow {
-        try {
-            val snapshot = firestore.collection("books")
-                .whereEqualTo("mood", mood)
-                .get()
-                .await()
-
-            val books = snapshot.documents.mapNotNull { doc ->
-                doc.toObject(Book::class.java)?.copy(id = doc.id)
-            }
-            emit(books)
-        } catch (e: Exception) {
-            emit(emptyList())
-        }
-    }
-
-    override suspend fun getBookById(bookId: String): Book? {
-        return try {
-            val doc = firestore.collection("books")
-                .document(bookId)
-                .get()
-                .await()
-
-            doc.toObject(Book::class.java)?.copy(id = doc.id)
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    override fun searchBooks(query: String): Flow<List<Book>> = flow {
-        // Implement search logic
-        emit(emptyList())
-    }
+    override suspend fun getBookByIsbn(isbn: String): Book? =
+        runCatching {
+            api.searchBooks(query = "isbn:$isbn", maxResults = 1, apiKey = apiKey)
+                .items?.firstOrNull()?.toDomain()
+        }.getOrNull()
 }

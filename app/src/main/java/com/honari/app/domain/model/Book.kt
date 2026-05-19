@@ -1,19 +1,21 @@
 package com.honari.app.domain.model
 
-/**
- * Domain model representing a book entity.
- * Clean architecture - no framework dependencies.
- */
 data class Book(
     val id: String = "",
     val title: String = "",
-    val author: String = "",
-    val rating: Float = 0f,
-    val imageUrl: String = "",
-    val mood: String = "",
-    val readers: Int = 0,
+    val authors: List<String> = emptyList(),
     val description: String = "",
-    val category: String? = null,
-    val trend: String? = null,
-    val featured: Boolean = false
+    val imageUrl: String = "",
+    val isbn: String = "",
+    val categories: List<String> = emptyList(),
+    val pageCount: Int = 0,
+    val publishedDate: String = "",
+    val averageRating: Float = 0f,
+    val ratingsCount: Int = 0,
+    val publisher: String = "",
+    val language: String = "",
+    // Library fields — null when the book is not in the user's library
+    val libraryStatus: ReadingStatus? = null,
+    val addedAt: Long? = null,
+    val userRating: Float = 0f,
 )

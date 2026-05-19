@@ -1,0 +1,71 @@
+## Android / Gradle
+.gradle/
+local.properties
+build/
+!gradle/wrapper/gradle-wrapper.jar
+captures/
+.externalNativeBuild/
+.cxx/
+
+## Android Studio / IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+.DS_Store
+
+## Kotlin
+*.class
+*.jar
+*.war
+*.ear
+*.kotlin_module
+
+## Signing / Secrets
+*.jks
+*.keystore
+keystore.properties
+release.properties
+secrets.properties
+
+## Build outputs
+app/release/
+app/debug/
+
+## Test outputs
+test-results/
+**/test-results/**/*.xml
+**/build/reports/**/*.xml
+
+## DataStore / Room schemas
+app/schemas/
+
+## Navigation safe-args generated
+app/src/*/java/**/*Args.kt
+app/src/*/java/**/*Directions.kt
+
+## Detekt reports
+build/reports/detekt/
+
+## Spotless cache
+.spotless/
+
+## macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk

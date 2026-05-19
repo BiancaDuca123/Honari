@@ -1,117 +1,69 @@
 package com.honari.app.presentation.navigation
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavHostController
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.honari.app.presentation.screens.auth.LoginScreen
-import com.honari.app.presentation.screens.auth.PasswordScreen
-import com.honari.app.presentation.screens.auth.RegisterScreen
-import com.honari.app.presentation.screens.book.BookDetailScreen
-import com.honari.app.presentation.screens.circles.CirclesScreen
-import com.honari.app.presentation.screens.discover.DiscoverScreen
+import com.honari.app.presentation.screens.auth.AuthScreen
+import com.honari.app.presentation.screens.auth.AuthViewModel
+import com.honari.app.presentation.screens.feed.FeedScreen
 import com.honari.app.presentation.screens.library.LibraryScreen
 import com.honari.app.presentation.screens.profile.ProfileScreen
-import com.honari.app.presentation.screens.reading.ReadingScreen
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import com.honari.app.presentation.screens.scanner.ScannerScreen
 
-/**
- * Main navigation host for the Honari app.
- * Manages all screen navigation using Jetpack Navigation Compose.
- */
+private val bottomNavScreens = listOf(Screen.Feed, Screen.Scanner, Screen.Library)
+private val bottomNavRoutes = bottomNavScreens.map { it.route }.toSet()
+
 @Composable
-fun HonariNavHost(
-    navController: NavHostController = rememberNavController(),
-    authRepository: com.honari.app.domain.repository.AuthRepository
-) {
-    // Check authentication state to determine start destination
-    val startDestination = remember {
-        runBlocking {
-            val user = authRepository.getCurrentUser().first()
-            if (user != null) Screen.MainNav.route else Screen.Login.route
-        }
+fun HonariNavHost() {
+    val authViewModel: AuthViewModel = viewModel()
+    val authState by authViewModel.uiState.collectAsStateWithLifecycle()
+
+    if (!authState.isAuthenticated) {
+        AuthScreen()
+        return
     }
 
-    NavHost(
-        navController = navController,
-        startDestination = startDestination
-    ) {
-        // Auth screens (no bottom nav)
-        composable(Screen.Login.route) {
-            LoginScreen(navController = navController)
-        }
-
-        composable(Screen.Register.route) {
-            RegisterScreen(navController = navController)
-        }
-
-        composable(Screen.Password.route) {
-            PasswordScreen(navController = navController)
-        }
-
-        // Main navigation with bottom bar
-        composable(Screen.MainNav.route) {
-            MainNavigationScreen()
-        }
-
-        composable(
-            route = Screen.BookDetail.route,
-            arguments = Screen.BookDetail.arguments
-        ) { backStackEntry ->
-            val bookId = backStackEntry.arguments?.getString("bookId") ?: ""
-            BookDetailScreen(
-                bookId = bookId,
-                navController = navController
-            )
-        }
-    }
-}
-
-/**
- * Main navigation screen with bottom navigation bar.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun MainNavigationScreen() {
     val navController = rememberNavController()
 
     Scaffold(
         bottomBar = {
-            BottomNavigationBar(navController = navController)
-        }
+            val entry by navController.currentBackStackEntryAsState()
+            if (entry?.destination?.route in bottomNavRoutes) {
+                HonariBottomBar(
+                    screens = bottomNavScreens,
+                    currentRoute = entry?.destination?.route,
+                    onNavigate = { screen ->
+                        navController.navigate(screen.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                )
+            }
+        },
     ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding)) {
-            NavHost(
-                navController = navController,
-                startDestination = Screen.Discover.route
-            ) {
-                composable(Screen.Discover.route) {
-                    DiscoverScreen(navController = navController)
-                }
-
-                composable(Screen.Library.route) {
-                    LibraryScreen(navController = navController)
-                }
-
-                composable(Screen.Reading.route) {
-                    ReadingScreen(navController = navController)
-                }
-
-                composable(Screen.Circles.route) {
-                    CirclesScreen(navController = navController)
-                }
-
-                composable(Screen.Profile.route) {
-                    ProfileScreen(navController = navController)
-                }
+        NavHost(
+            navController = navController,
+            startDestination = Screen.Feed.route,
+            modifier = Modifier.padding(innerPadding),
+        ) {
+            composable(Screen.Feed.route) {
+                FeedScreen(onNavigateToProfile = { navController.navigate(Screen.Profile.route) })
+            }
+            composable(Screen.Scanner.route) { ScannerScreen() }
+            composable(Screen.Library.route) { LibraryScreen() }
+            composable(Screen.Profile.route) {
+                ProfileScreen(onBack = { navController.popBackStack() })
             }
         }
     }
