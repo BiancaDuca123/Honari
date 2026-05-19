@@ -20,4 +20,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Honari"
-include(":app")
+include(":modules:app", ":modules:core")
