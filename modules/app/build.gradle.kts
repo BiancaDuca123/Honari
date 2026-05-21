@@ -108,6 +108,7 @@ dependencies {
 
     implementation(libs.bundles.camerax)
     implementation(libs.mlkit.barcode.scanning)
+    implementation(libs.mlkit.text.recognition)
     implementation("com.google.accompanist:accompanist-permissions:0.36.0")
 
     testImplementation(libs.junit)

@@ -8,7 +8,6 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,24 +49,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -76,6 +68,9 @@ import com.google.accompanist.permissions.rememberPermissionState
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.TextRecognizer
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.honari.app.domain.model.Book
 import com.honari.app.domain.model.ReadingStatus
 import com.honari.app.presentation.theme.BrownHeadline
@@ -85,16 +80,17 @@ import com.honari.app.presentation.theme.PrimaryTeal
 import com.honari.app.presentation.theme.TextSecondary
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import androidx.compose.ui.geometry.Size as CanvasSize
 
 private const val YEAR_CHARACTERS = 4
 private const val ANALYSIS_WIDTH = 1_280
 private const val ANALYSIS_HEIGHT = 720
-private const val OVERLAY_WIDTH_FRACTION = 0.78f
-private const val OVERLAY_HEIGHT_FRACTION = 0.18f
-private const val OVERLAY_CORNER_RADIUS = 36f
-private const val OVERLAY_ALPHA = 0.55f
 private const val BACK_BUTTON_ALPHA = 0.4f
+private val BACK_BUTTON_PADDING = 8.dp
+private val CAMERA_PERMISSION_PADDING = 32.dp
+private val OVERLAY_HORIZONTAL_PADDING = 24.dp
+private val MODE_TOGGLE_TOP_PADDING = 56.dp
+private val DETECTED_TEXT_BOTTOM_PADDING = 120.dp
+private val SNACKBAR_PADDING = 16.dp
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -106,6 +102,11 @@ fun ScannerScreen(
     val cameraPermission = rememberPermissionState(Manifest.permission.CAMERA)
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val snackbarHostState = remember { SnackbarHostState() }
+    val instructionText = if (uiState.scanMode == ScanMode.BARCODE) {
+        "Point camera at book barcode"
+    } else {
+        "Point camera at book title or cover"
+    }
 
     LaunchedEffect(Unit) {
         if (!cameraPermission.status.isGranted) {
@@ -114,16 +115,38 @@ fun ScannerScreen(
     }
 
     LaunchedEffect(uiState.error) {
-        uiState.error?.let {
-            snackbarHostState.showSnackbar(it)
+        uiState.error?.let { message ->
+            snackbarHostState.showSnackbar(message)
             viewModel.clearError()
         }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (cameraPermission.status.isGranted) {
-            CameraPreview(onBarcodeDetected = viewModel::onBarcodeScanned)
-            ScannerOverlay()
+            CameraPreview(
+                scanMode = uiState.scanMode,
+                onBarcodeDetected = viewModel::onBarcodeScanned,
+                onTextDetected = viewModel::onTextDetected,
+            )
+            ScannerOverlay(instruction = instructionText)
+            ScanModeToggle(
+                currentMode = uiState.scanMode,
+                onModeSelected = viewModel::switchMode,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = MODE_TOGGLE_TOP_PADDING),
+            )
+            if (uiState.scanMode == ScanMode.COVER && uiState.detectedText.isNotEmpty()) {
+                DetectedTextOverlay(
+                    detectedText = uiState.detectedText,
+                    isSearchingByText = uiState.isSearchingByText,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = DETECTED_TEXT_BOTTOM_PADDING)
+                        .padding(horizontal = OVERLAY_HORIZONTAL_PADDING),
+                )
+            }
         } else {
             Box(
                 modifier = Modifier
@@ -132,9 +155,9 @@ fun ScannerScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    "Camera permission required to scan books.",
+                    text = "Camera permission required to scan books.",
                     color = Color.White,
-                    modifier = Modifier.padding(32.dp),
+                    modifier = Modifier.padding(CAMERA_PERMISSION_PADDING),
                 )
             }
         }
@@ -144,7 +167,7 @@ fun ScannerScreen(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .statusBarsPadding()
-                .padding(8.dp)
+                .padding(BACK_BUTTON_PADDING)
                 .background(
                     color = Color.Black.copy(alpha = BACK_BUTTON_ALPHA),
                     shape = CircleShape,
@@ -161,7 +184,7 @@ fun ScannerScreen(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(16.dp),
+                .padding(SNACKBAR_PADDING),
         ) { data ->
             Snackbar(containerColor = ErrorRed, contentColor = CardWhite) {
                 Text(text = data.visuals.message)
@@ -395,24 +418,46 @@ private fun buildMetadata(book: Book): String {
 }
 
 @Composable
-private fun CameraPreview(onBarcodeDetected: (String) -> Unit) {
+private fun CameraPreview(
+    scanMode: ScanMode,
+    onBarcodeDetected: (String) -> Unit,
+    onTextDetected: (String) -> Unit,
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val previewView = remember {
         PreviewView(context).apply { scaleType = PreviewView.ScaleType.FILL_CENTER }
     }
-    val executor = remember { Executors.newSingleThreadExecutor() }
 
-    DisposableEffect(previewView, lifecycleOwner) {
+    DisposableEffect(previewView, lifecycleOwner, scanMode) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         val barcodeScanner = BarcodeScanning.getClient()
+        val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        val barcodeExecutor = Executors.newSingleThreadExecutor()
+        val textExecutor = Executors.newSingleThreadExecutor()
 
         val listener = Runnable {
             val cameraProvider = cameraProviderFuture.get()
-            val preview = Preview.Builder().build().also {
-                it.surfaceProvider = previewView.surfaceProvider
+            val preview = Preview.Builder().build().also { previewUseCase ->
+                previewUseCase.surfaceProvider = previewView.surfaceProvider
             }
-            val imageAnalyzer = buildImageAnalyzer(executor, barcodeScanner, onBarcodeDetected)
+            val imageAnalyzer = when (scanMode) {
+                ScanMode.BARCODE -> {
+                    buildBarcodeAnalyzer(
+                        executor = barcodeExecutor,
+                        barcodeScanner = barcodeScanner,
+                        onBarcodeDetected = onBarcodeDetected,
+                    )
+                }
+
+                ScanMode.COVER -> {
+                    buildTextAnalyzer(
+                        executor = textExecutor,
+                        recognizer = textRecognizer,
+                        onTextDetected = onTextDetected,
+                    )
+                }
+            }
 
             cameraProvider.unbindAll()
             cameraProvider.bindToLifecycle(
@@ -428,7 +473,9 @@ private fun CameraPreview(onBarcodeDetected: (String) -> Unit) {
         onDispose {
             runCatching { cameraProviderFuture.get().unbindAll() }
             barcodeScanner.close()
-            executor.shutdown()
+            textRecognizer.close()
+            barcodeExecutor.shutdown()
+            textExecutor.shutdown()
         }
     }
 
@@ -438,7 +485,7 @@ private fun CameraPreview(onBarcodeDetected: (String) -> Unit) {
     )
 }
 
-private fun buildImageAnalyzer(
+private fun buildBarcodeAnalyzer(
     executor: ExecutorService,
     barcodeScanner: com.google.mlkit.vision.barcode.BarcodeScanner,
     onBarcodeDetected: (String) -> Unit,
@@ -474,60 +521,32 @@ private fun buildImageAnalyzer(
         }
     }
 
-@Composable
-private fun ScannerOverlay() {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            drawRect(color = Color.Black.copy(alpha = OVERLAY_ALPHA))
-
-            val overlayWidth = size.width * OVERLAY_WIDTH_FRACTION
-            val overlayHeight = size.height * OVERLAY_HEIGHT_FRACTION
-            val left = (size.width - overlayWidth) / 2f
-            val top = (size.height - overlayHeight) / 2f
-            val rect = Rect(left, top, left + overlayWidth, top + overlayHeight)
-            val radius = OVERLAY_CORNER_RADIUS
-
-            drawIntoCanvas { canvas ->
-                val clearPaint = android.graphics.Paint().apply {
-                    isAntiAlias = true
-                    xfermode = android.graphics.PorterDuffXfermode(
-                        android.graphics.PorterDuff.Mode.CLEAR,
-                    )
-                }
-                canvas.nativeCanvas.drawRoundRect(
-                    rect.left,
-                    rect.top,
-                    rect.right,
-                    rect.bottom,
-                    radius,
-                    radius,
-                    clearPaint,
+private fun buildTextAnalyzer(
+    executor: ExecutorService,
+    recognizer: TextRecognizer,
+    onTextDetected: (String) -> Unit,
+): ImageAnalysis = ImageAnalysis.Builder()
+    .setTargetResolution(Size(ANALYSIS_WIDTH, ANALYSIS_HEIGHT))
+    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+    .build()
+    .also { analysis ->
+        analysis.setAnalyzer(executor) { imageProxy ->
+            val mediaImage = imageProxy.image
+            if (mediaImage != null) {
+                val image = InputImage.fromMediaImage(
+                    mediaImage,
+                    imageProxy.imageInfo.rotationDegrees,
                 )
+                recognizer.process(image)
+                    .addOnSuccessListener { visionText ->
+                        val text = visionText.text.trim()
+                        if (text.isNotBlank()) {
+                            onTextDetected(text)
+                        }
+                    }
+                    .addOnCompleteListener { imageProxy.close() }
+            } else {
+                imageProxy.close()
             }
-
-            drawRoundRect(
-                color = Color.White.copy(alpha = 0.9f),
-                topLeft = Offset(rect.left, rect.top),
-                size = CanvasSize(rect.width, rect.height),
-                cornerRadius = CornerRadius(radius, radius),
-                style = Stroke(width = 5f),
-                blendMode = BlendMode.SrcOver,
-            )
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.Center)
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = "Point camera at book barcode",
-                color = Color.White,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(bottom = 160.dp),
-            )
         }
     }
-}
