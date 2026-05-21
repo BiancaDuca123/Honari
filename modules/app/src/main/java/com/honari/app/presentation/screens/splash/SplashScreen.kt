@@ -20,7 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.honari.app.presentation.theme.BrownHeadline
+import com.honari.app.presentation.theme.PrimaryTeal
 import com.honari.app.presentation.theme.PrimaryTeal
 import kotlinx.coroutines.delay
 
@@ -54,7 +54,7 @@ fun SplashScreen(onFinished: () -> Unit) {
         Text(
             text = "HONARI",
             style = MaterialTheme.typography.displayLarge,
-            color = BrownHeadline,
+            color = PrimaryTeal,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(

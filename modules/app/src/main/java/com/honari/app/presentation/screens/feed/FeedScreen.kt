@@ -58,7 +58,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.honari.app.domain.model.Book
-import com.honari.app.presentation.theme.BrownHeadline
+import com.honari.app.presentation.theme.PrimaryTeal
 import com.honari.app.presentation.theme.CardWhite
 import com.honari.app.presentation.theme.ErrorRed
 import com.honari.app.presentation.theme.PrimaryTeal
@@ -156,7 +156,7 @@ private fun ExploreTopBar(onToggleSearch: () -> Unit) {
             Text(
                 text = "Explore",
                 style = MaterialTheme.typography.headlineLarge,
-                color = BrownHeadline,
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.weight(1f),
             )
             IconButton(onClick = onToggleSearch) {
@@ -169,7 +169,7 @@ private fun ExploreTopBar(onToggleSearch: () -> Unit) {
         }
         HorizontalDivider(
             modifier = Modifier.padding(horizontal = 20.dp),
-            color = BrownHeadline.copy(alpha = 0.12f),
+            color = MaterialTheme.colorScheme.outlineVariant,
         )
     }
 }
@@ -282,7 +282,7 @@ private fun SectionTitle(title: String, topPadding: Dp) {
     Text(
         text = title,
         style = MaterialTheme.typography.headlineSmall,
-        color = BrownHeadline,
+        color = MaterialTheme.colorScheme.onBackground,
         modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = topPadding, bottom = 4.dp),
     )
 }

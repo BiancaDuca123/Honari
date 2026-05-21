@@ -64,7 +64,7 @@ import coil.compose.AsyncImage
 import com.honari.app.AppViewModel
 import com.honari.app.BuildConfig
 import com.honari.app.domain.model.Book
-import com.honari.app.presentation.theme.BrownHeadline
+import com.honari.app.presentation.theme.AccentAmber
 import com.honari.app.presentation.theme.CardWhite
 import com.honari.app.presentation.theme.ErrorRed
 import com.honari.app.presentation.theme.PrimaryTeal
@@ -152,7 +152,7 @@ private fun ProfileContent(
                 icon = Icons.Default.BookmarkBorder,
                 title = "Wish List",
                 value = uiState.wantToRead.toString(),
-                iconTint = BrownHeadline,
+                iconTint = AccentAmber,
             )
             SettingsDivider()
             InfoRow(
@@ -310,7 +310,7 @@ private fun StatsRow(totalRead: Int, wantToRead: Int, totalBooks: Int) {
         ) {
             StatItem(count = totalRead, label = "Read", color = PrimaryTeal)
             VerticalDivider(modifier = Modifier.height(36.dp), color = MaterialTheme.colorScheme.outlineVariant)
-            StatItem(count = wantToRead, label = "Wish List", color = BrownHeadline)
+            StatItem(count = wantToRead, label = "Wish List", color = AccentAmber)
             VerticalDivider(modifier = Modifier.height(36.dp), color = MaterialTheme.colorScheme.outlineVariant)
             StatItem(count = totalBooks, label = "Total", color = MaterialTheme.colorScheme.onSurface)
         }

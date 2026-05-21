@@ -54,7 +54,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.honari.app.domain.model.Book
 import com.honari.app.domain.model.ReadingStatus
 import com.honari.app.domain.model.Review
-import com.honari.app.presentation.theme.BrownHeadline
+import com.honari.app.presentation.theme.PrimaryTeal
 import com.honari.app.presentation.theme.CardWhite
 import com.honari.app.presentation.theme.ErrorRed
 import com.honari.app.presentation.theme.PrimaryTeal
@@ -235,7 +235,7 @@ private fun BookSummarySection(book: Book) {
         Text(
             text = book.title,
             style = MaterialTheme.typography.headlineMedium,
-            color = BrownHeadline,
+            color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -352,8 +352,8 @@ private fun BookActionSection(
             onClick = onReview,
             modifier = Modifier.fillMaxWidth(),
             shape = ActionShape,
-            border = BorderStroke(1.dp, BrownHeadline),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = BrownHeadline),
+            border = BorderStroke(1.dp, PrimaryTeal),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryTeal),
         ) { Text("Write a Review") }
     }
 }
@@ -375,7 +375,7 @@ private fun ReviewSheet(
         Text(
             text = if (isEditing) "Edit Review" else "Write a Review",
             style = MaterialTheme.typography.headlineSmall,
-            color = BrownHeadline,
+            color = MaterialTheme.colorScheme.onBackground,
         )
         StarRatingRow(
             rating = uiState.reviewRating,

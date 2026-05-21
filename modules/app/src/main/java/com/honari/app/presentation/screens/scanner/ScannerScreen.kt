@@ -73,7 +73,7 @@ import com.google.mlkit.vision.text.TextRecognizer
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.honari.app.domain.model.Book
 import com.honari.app.domain.model.ReadingStatus
-import com.honari.app.presentation.theme.BrownHeadline
+import com.honari.app.presentation.theme.PrimaryTealDark
 import com.honari.app.presentation.theme.CardWhite
 import com.honari.app.presentation.theme.ErrorRed
 import com.honari.app.presentation.theme.PrimaryTeal
@@ -285,7 +285,7 @@ private fun BookHeader(book: Book) {
                 text = book.title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = BrownHeadline,
+                color = PrimaryTealDark,
                 maxLines = TITLE_MAX_LINES,
                 overflow = TextOverflow.Ellipsis,
             )

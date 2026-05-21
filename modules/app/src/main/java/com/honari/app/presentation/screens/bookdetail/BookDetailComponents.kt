@@ -38,7 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.honari.app.domain.model.Review
-import com.honari.app.presentation.theme.BrownHeadline
+import com.honari.app.presentation.theme.PrimaryTeal
 import com.honari.app.presentation.theme.CardWhite
 import com.honari.app.presentation.theme.ErrorRed
 import com.honari.app.presentation.theme.PrimaryTeal
@@ -65,7 +65,7 @@ internal fun BookCover(imageUrl: String, title: String, modifier: Modifier = Mod
     ) {
         if (imageUrl.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Icon(imageVector = Icons.Default.MenuBook, contentDescription = null, tint = BrownHeadline)
+                Icon(imageVector = Icons.Default.MenuBook, contentDescription = null, tint = PrimaryTeal)
             }
         } else {
             AsyncImage(
@@ -112,7 +112,7 @@ internal fun ReviewsHeader(reviewCount: Int) {
         Text(
             text = "Reviews",
             style = MaterialTheme.typography.headlineSmall,
-            color = BrownHeadline,
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.weight(1f),
         )
         Text(

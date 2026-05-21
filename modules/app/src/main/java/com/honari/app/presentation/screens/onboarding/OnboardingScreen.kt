@@ -33,7 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.honari.app.presentation.theme.BrownHeadline
+import com.honari.app.presentation.theme.PrimaryTealDark
 import com.honari.app.presentation.theme.CardWhite
 import com.honari.app.presentation.theme.PrimaryTeal
 
@@ -105,7 +105,7 @@ fun OnboardingScreen(onFinished: () -> Unit) {
         Text(
             text = slide.title,
             style = MaterialTheme.typography.displayMedium,
-            color = BrownHeadline,
+            color = PrimaryTealDark,
             textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -136,7 +136,7 @@ fun OnboardingScreen(onFinished: () -> Unit) {
         TextButton(onClick = onFinished) {
             Text(
                 text = "Skip",
-                color = BrownHeadline,
+                color = PrimaryTealDark,
                 style = MaterialTheme.typography.titleMedium,
             )
         }
