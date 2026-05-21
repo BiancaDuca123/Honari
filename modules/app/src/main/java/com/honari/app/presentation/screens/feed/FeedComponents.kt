@@ -153,7 +153,7 @@ internal fun FeaturedBookCard(book: Book, onClick: () -> Unit) {
             )
             if (book.averageRating > 0f) {
                 Spacer(modifier = Modifier.height(6.dp))
-                InlineRatingRow(rating = book.averageRating)
+                InlineRatingRow(rating = book.averageRating, count = book.ratingsCount)
             }
         }
     }
@@ -212,6 +212,10 @@ private fun NewReleaseCard(book: Book, onClick: () -> Unit) {
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        if (book.averageRating > 0f) {
+            Spacer(modifier = Modifier.height(3.dp))
+            InlineRatingRow(rating = book.averageRating, count = book.ratingsCount)
+        }
     }
 }
 
@@ -279,7 +283,7 @@ internal fun TopPicksListItem(book: Book, showDivider: Boolean, onClick: () -> U
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (book.averageRating > 0f) {
-                        InlineRatingRow(rating = book.averageRating)
+                        InlineRatingRow(rating = book.averageRating, count = book.ratingsCount)
                         Spacer(modifier = Modifier.width(10.dp))
                     }
                     if (book.pageCount > 0) {
@@ -302,12 +306,12 @@ internal fun TopPicksListItem(book: Book, showDivider: Boolean, onClick: () -> U
 }
 
 @Composable
-internal fun RatingRow(rating: Float) {
-    InlineRatingRow(rating = rating)
+internal fun RatingRow(rating: Float, count: Int = 0) {
+    InlineRatingRow(rating = rating, count = count)
 }
 
 @Composable
-private fun InlineRatingRow(rating: Float) {
+private fun InlineRatingRow(rating: Float, count: Int = 0) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = Icons.Default.Star,
@@ -317,7 +321,10 @@ private fun InlineRatingRow(rating: Float) {
         )
         Spacer(modifier = Modifier.width(3.dp))
         Text(
-            text = String.format(Locale.US, "%.1f", rating),
+            text = buildString {
+                append(String.format(Locale.US, "%.1f", rating))
+                if (count > 0) append(" ($count)")
+            },
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.honari.app.domain.model.Book
 import com.honari.app.domain.model.ReadingStatus
+import com.honari.app.presentation.screens.feed.RatingRow
 import com.honari.app.presentation.theme.BrownHeadline
 import com.honari.app.presentation.theme.CardWhite
 import com.honari.app.presentation.theme.ErrorRed
@@ -217,7 +218,15 @@ private fun BookRow(book: Book, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
             Spacer(modifier = Modifier.height(6.dp))
-            StatusBadge(status = book.libraryStatus)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                StatusBadge(status = book.libraryStatus)
+                if (book.averageRating > 0f) {
+                    RatingRow(rating = book.averageRating, count = book.ratingsCount)
+                }
+            }
         }
     }
 }
