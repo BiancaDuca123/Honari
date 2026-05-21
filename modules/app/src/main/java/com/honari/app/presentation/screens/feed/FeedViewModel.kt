@@ -19,8 +19,7 @@ import javax.inject.Inject
 private const val DEFAULT_QUERY = "subject:fiction"
 private const val SEARCH_DEBOUNCE_MS = 500L
 private const val MAX_SUBJECTS = 3
-private const val MAX_AUTHORS = 2
-private const val MAX_TOP_PICKS = 10
+private const val MAX_TOP_PICKS = 8
 
 data class FeedUiState(
     val isLoading: Boolean = false,
@@ -69,36 +68,25 @@ class FeedViewModel @Inject constructor(
     private fun loadTopPicks() {
         viewModelScope.launch {
             runCatching {
-                val query = buildRecommendationQuery()
-                val picks = bookRepository.searchBooks(query, maxResults = MAX_TOP_PICKS)
+                val libraryBooks = libraryRepository.getAllBooks().firstOrNull() ?: emptyList()
+                val picks = if (libraryBooks.isEmpty()) {
+                    bookRepository.searchBooks("subject:bestseller", maxResults = MAX_TOP_PICKS)
+                } else {
+                    val topGenres = libraryBooks.flatMap { it.categories }
+                        .filter { it.isNotBlank() }
+                        .groupingBy { it.lowercase().trim() }
+                        .eachCount()
+                        .entries.sortedByDescending { it.value }
+                        .take(MAX_SUBJECTS)
+                        .map { it.key }
+                    topGenres.flatMap { genre ->
+                        bookRepository.searchBooks("subject:$genre", maxResults = 8)
+                    }.distinctBy { it.id }
+                }
                 _uiState.update { it.copy(topPicksBooks = picks) }
             }
         }
     }
-
-    private suspend fun buildRecommendationQuery(): String {
-        val libraryBooks = libraryRepository.getAllBooks().firstOrNull() ?: emptyList()
-        if (libraryBooks.isEmpty()) return DEFAULT_QUERY
-
-        val subjects = libraryBooks.flatMap { it.categories }
-            .filter { it.isNotBlank() }
-            .distinct()
-            .take(MAX_SUBJECTS)
-        val authors = libraryBooks.flatMap { it.authors }
-            .filter { it.isNotBlank() }
-            .distinct()
-            .take(MAX_AUTHORS)
-
-        if (subjects.isEmpty() && authors.isEmpty()) return DEFAULT_QUERY
-
-        val parts = mutableListOf<String>()
-        subjects.forEach { parts.add("subject:${formatRecommendationTerm(it)}") }
-        authors.forEach { parts.add("inauthor:${formatRecommendationTerm(it)}") }
-        return parts.joinToString("+")
-    }
-
-    private fun formatRecommendationTerm(value: String): String =
-        value.lowercase().replace(" ", "+")
 
     fun refreshFeed() {
         loadFeed()

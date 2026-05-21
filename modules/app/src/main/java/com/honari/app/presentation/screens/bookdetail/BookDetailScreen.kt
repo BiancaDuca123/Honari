@@ -321,24 +321,15 @@ private fun BookActionSection(
                 ) { Text("Mark Read") }
             }
         } else {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(
-                    onClick = onSaveWishlist,
-                    modifier = Modifier.weight(1f),
-                    shape = ActionShape,
-                    border = BorderStroke(1.dp, BrownHeadline),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BrownHeadline),
-                ) { Text("Wishlist") }
-                Button(
-                    onClick = onSaveRead,
-                    modifier = Modifier.weight(1f),
-                    shape = ActionShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryTeal,
-                        contentColor = CardWhite,
-                    ),
-                ) { Text("Save") }
-            }
+            Button(
+                onClick = onSaveWishlist,
+                modifier = Modifier.fillMaxWidth(),
+                shape = ActionShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryTeal,
+                    contentColor = CardWhite,
+                ),
+            ) { Text("Add to Library") }
         }
         OutlinedButton(
             onClick = onReview,

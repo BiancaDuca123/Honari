@@ -120,6 +120,6 @@ fun LibraryScreen(
 private val LibraryFilter.tabLabel: String
     get() = when (this) {
         LibraryFilter.ALL_BOOKS -> "All"
-        LibraryFilter.CONTINUE_READING -> "Reading"
-        LibraryFilter.WISH_LIST -> "Wish List"
+        LibraryFilter.CONTINUE_READING -> "Want to Read"
+        LibraryFilter.WISH_LIST -> "Finished"
     }

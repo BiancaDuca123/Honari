@@ -14,8 +14,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 enum class LibraryFilter(val title: String) {
-    CONTINUE_READING("Continue Reading"),
-    WISH_LIST("My Wish List"),
+    CONTINUE_READING("Want to Read"),
+    WISH_LIST("Finished"),
     ALL_BOOKS("All Books"),
 }
 
@@ -28,10 +28,10 @@ data class LibraryUiState(
     val displayedBooks: List<Book>
         get() = when (selectedFilter) {
             LibraryFilter.CONTINUE_READING -> allBooks.filter {
-                it.libraryStatus == ReadingStatus.READ
+                it.libraryStatus == ReadingStatus.WANT_TO_READ
             }
             LibraryFilter.WISH_LIST -> allBooks.filter {
-                it.libraryStatus == ReadingStatus.WANT_TO_READ
+                it.libraryStatus == ReadingStatus.READ
             }
             LibraryFilter.ALL_BOOKS -> allBooks
             null -> emptyList()
