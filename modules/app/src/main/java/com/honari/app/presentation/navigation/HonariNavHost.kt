@@ -60,9 +60,9 @@ private const val BOTTOM_BAR_INDICATOR_WIDTH = 0.46f
 private data class NavItem(val screen: Screen, val icon: ImageVector, val label: String)
 
 private val navItems = listOf(
+    NavItem(Screen.Feed, Icons.Default.AutoStories, "Explore"),
     NavItem(Screen.Library, Icons.Default.CollectionsBookmark, "My Collection"),
     NavItem(Screen.Scanner, Icons.Default.CameraAlt, "Scan"),
-    NavItem(Screen.Feed, Icons.Default.AutoStories, "Explore"),
     NavItem(Screen.Profile, Icons.Default.Person, "My Profile"),
 )
 private val bottomNavRoutes = navItems.map { it.screen.route }.toSet()
@@ -120,7 +120,7 @@ fun HonariNavHost() {
                     onFinished = {
                         val nextRoute = when {
                             !navViewModel.isOnboardingDone -> Screen.Onboarding.route
-                            authState.isAuthenticated -> Screen.Library.route
+                            authState.isAuthenticated -> Screen.Feed.route
                             else -> Screen.Auth.route
                         }
                         navController.navigate(nextRoute) {
@@ -134,7 +134,7 @@ fun HonariNavHost() {
                     onFinished = {
                         navViewModel.markOnboardingDone()
                         val nextRoute = if (authState.isAuthenticated) {
-                            Screen.Library.route
+                            Screen.Feed.route
                         } else {
                             Screen.Auth.route
                         }
@@ -147,7 +147,7 @@ fun HonariNavHost() {
             composable(Screen.Auth.route) {
                 LaunchedEffect(authState.isAuthenticated) {
                     if (authState.isAuthenticated) {
-                        navController.navigate(Screen.Library.route) {
+                        navController.navigate(Screen.Feed.route) {
                             popUpTo(navController.graph.findStartDestination().id) {
                                 inclusive = true
                             }
