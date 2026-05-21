@@ -112,6 +112,7 @@ fun FeedScreen(
                 )
                 else -> ExploreContent(
                     books = uiState.books,
+                    topPicksBooks = uiState.topPicksBooks,
                     selectedGenre = uiState.selectedGenre,
                     isRefreshing = uiState.isLoading,
                     onRefresh = viewModel::refreshFeed,
@@ -226,6 +227,7 @@ private fun SearchField(
 @Composable
 private fun ExploreContent(
     books: List<Book>,
+    topPicksBooks: List<Book>,
     selectedGenre: String?,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
@@ -235,7 +237,7 @@ private fun ExploreContent(
     val displayed = filterByGenre(books, selectedGenre)
     val featured = displayed.firstOrNull()
     val newReleases = displayed.drop(1).take(NEW_RELEASES_COUNT)
-    val topPicks = displayed.drop(1 + NEW_RELEASES_COUNT)
+    val picks = if (topPicksBooks.isNotEmpty()) topPicksBooks else displayed.drop(1 + NEW_RELEASES_COUNT)
 
     PullToRefreshBox(
         isRefreshing = isRefreshing,
@@ -259,7 +261,7 @@ private fun ExploreContent(
                 item { SectionTitle(title = SECTION_NEW_RELEASES, topPadding = 16.dp) }
                 item { HorizontalBooksRow(books = newReleases, onBookClick = onBookClick) }
                 item { SectionTitle(title = SECTION_TOP_PICKS, topPadding = 16.dp) }
-                items(topPicks.chunked(2), key = { it.first().id }) { pair ->
+                items(picks.chunked(2), key = { it.first().id }) { pair ->
                     BookCardRow(pair = pair, onBookClick = onBookClick)
                 }
             }

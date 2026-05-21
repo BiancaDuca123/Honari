@@ -20,10 +20,12 @@ private const val DEFAULT_QUERY = "subject:fiction"
 private const val SEARCH_DEBOUNCE_MS = 500L
 private const val MAX_SUBJECTS = 3
 private const val MAX_AUTHORS = 2
+private const val MAX_TOP_PICKS = 10
 
 data class FeedUiState(
     val isLoading: Boolean = false,
     val books: List<Book> = emptyList(),
+    val topPicksBooks: List<Book> = emptyList(),
     val selectedGenre: String? = null,
     val searchQuery: String = "",
     val searchResults: List<Book> = emptyList(),
@@ -52,14 +54,24 @@ class FeedViewModel @Inject constructor(
         feedJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             runCatching {
-                val query = buildRecommendationQuery()
-                bookRepository.getFeedBooks(query = query).collect { books ->
+                bookRepository.getFeedBooks(query = DEFAULT_QUERY).collect { books ->
                     _uiState.update { it.copy(isLoading = false, books = books) }
                 }
             }.onFailure { throwable ->
                 _uiState.update {
                     it.copy(isLoading = false, error = throwable.message ?: "Failed to load books")
                 }
+            }
+            loadTopPicks()
+        }
+    }
+
+    private fun loadTopPicks() {
+        viewModelScope.launch {
+            runCatching {
+                val query = buildRecommendationQuery()
+                val picks = bookRepository.searchBooks(query, maxResults = MAX_TOP_PICKS)
+                _uiState.update { it.copy(topPicksBooks = picks) }
             }
         }
     }
@@ -88,7 +100,9 @@ class FeedViewModel @Inject constructor(
     private fun formatRecommendationTerm(value: String): String =
         value.lowercase().replace(" ", "+")
 
-    fun refreshFeed() = loadFeed()
+    fun refreshFeed() {
+        loadFeed()
+    }
 
     fun onSearchQueryChanged(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
