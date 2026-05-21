@@ -10,6 +10,11 @@ import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private const val MIN_YEAR = 1995
+private const val POPULAR_THRESHOLD = 1000
+private const val FETCH_MULTIPLIER = 2
+private const val API_MAX_RESULTS = 40
+
 @Singleton
 class BookRepositoryImpl @Inject constructor(
     private val api: GoogleBooksApiService,
@@ -23,21 +28,30 @@ class BookRepositoryImpl @Inject constructor(
     ): Flow<List<Book>> = flow {
         val books = api.searchBooks(
             query = query,
-            maxResults = maxResults,
+            maxResults = (maxResults * FETCH_MULTIPLIER).coerceAtMost(API_MAX_RESULTS),
             orderBy = "newest",
             apiKey = apiKey,
-        ).items?.map { it.toDomain() }?.distinctBy { it.id } ?: emptyList()
+        ).items
+            ?.map { it.toDomain() }
+            ?.distinctBy { it.id }
+            ?.filter { it.isEligibleForFeed() }
+            ?.take(maxResults)
+            ?: emptyList()
         emit(books)
     }
 
     override suspend fun searchBooks(query: String, maxResults: Int): List<Book> =
-        run {
-            api.searchBooks(query = query, maxResults = maxResults, apiKey = apiKey)
-                .items
-                ?.map { it.toDomain() }
-                ?.distinctBy { it.id }
-                ?: emptyList()
-        }
+        api.searchBooks(
+            query = query,
+            maxResults = (maxResults * FETCH_MULTIPLIER).coerceAtMost(API_MAX_RESULTS),
+            apiKey = apiKey,
+        )
+            .items
+            ?.map { it.toDomain() }
+            ?.distinctBy { it.id }
+            ?.filter { it.isEligibleForFeed() }
+            ?.take(maxResults)
+            ?: emptyList()
 
     override suspend fun getBookById(googleBooksId: String): Book? =
         runCatching { api.getBookById(googleBooksId, apiKey).toDomain() }.getOrNull()
@@ -49,4 +63,10 @@ class BookRepositoryImpl @Inject constructor(
                 ?.firstOrNull()
                 ?.toDomain()
         }.getOrNull()
+}
+
+private fun Book.isEligibleForFeed(): Boolean {
+    if (imageUrl.isEmpty()) return false
+    val year = publishedDate.take(4).toIntOrNull() ?: 0
+    return year >= MIN_YEAR || ratingsCount >= POPULAR_THRESHOLD
 }
