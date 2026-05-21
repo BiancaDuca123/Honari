@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
@@ -65,6 +66,7 @@ import com.honari.app.presentation.theme.PrimaryTeal
 private const val SKELETON_COUNT = 6
 private const val NEW_RELEASES_COUNT = 5
 private const val SKELETON_ALPHA = 0.35f
+private const val BOOK_SKELETON_RATIO = 0.67f
 private const val SECTION_FEATURED = "Featured"
 private const val SECTION_NEW_RELEASES = "New Releases"
 private const val SECTION_TOP_PICKS = "Top Picks for You"
@@ -261,8 +263,12 @@ private fun ExploreContent(
                 item { SectionTitle(title = SECTION_NEW_RELEASES, topPadding = 16.dp) }
                 item { HorizontalBooksRow(books = newReleases, onBookClick = onBookClick) }
                 item { SectionTitle(title = SECTION_TOP_PICKS, topPadding = 16.dp) }
-                items(picks.chunked(2), key = { it.first().id }) { pair ->
-                    BookCardRow(pair = pair, onBookClick = onBookClick)
+                itemsIndexed(picks, key = { _, b -> b.id }) { index, book ->
+                    TopPicksListItem(
+                        book = book,
+                        showDivider = index < picks.lastIndex,
+                        onClick = { onBookClick(book.id) },
+                    )
                 }
             }
         }
@@ -372,33 +378,49 @@ private fun LoadingFeed() {
         item {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 items(NEW_RELEASES_COUNT) {
                     Box(
                         modifier = Modifier
-                            .width(COMPACT_CARD_WIDTH.dp)
-                            .height(COMPACT_CARD_HEIGHT.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .width(NEW_RELEASE_CARD_WIDTH.dp)
+                            .height((NEW_RELEASE_CARD_WIDTH / BOOK_SKELETON_RATIO).dp)
+                            .clip(RoundedCornerShape(14.dp))
                             .background(skeletonColor),
                     )
                 }
             }
         }
         item { SectionTitle(title = SECTION_TOP_PICKS, topPadding = 16.dp) }
-        items(SKELETON_COUNT / 2) {
+        items(SKELETON_COUNT) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                repeat(2) {
+                Box(
+                    modifier = Modifier
+                        .width(PICKS_COVER_WIDTH.dp)
+                        .height(PICKS_COVER_HEIGHT.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(skeletonColor),
+                )
+                Spacer(modifier = Modifier.width(14.dp))
+                Column(modifier = Modifier.weight(1f)) {
                     Box(
                         modifier = Modifier
-                            .weight(1f)
-                            .height(BOOK_CARD_IMAGE_HEIGHT.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .fillMaxWidth(0.85f)
+                            .height(16.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(skeletonColor),
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.5f)
+                            .height(12.dp)
+                            .clip(RoundedCornerShape(4.dp))
                             .background(skeletonColor),
                     )
                 }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,6 +24,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -35,6 +37,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -44,21 +47,22 @@ import com.honari.app.presentation.theme.PrimaryTeal
 import com.honari.app.presentation.theme.StarGold
 import java.util.Locale
 
-internal const val FEATURED_HEIGHT = 220
-internal const val COMPACT_CARD_WIDTH = 120
-internal const val COMPACT_CARD_HEIGHT = 160
-internal const val BOOK_CARD_IMAGE_HEIGHT = 200
+internal const val FEATURED_HEIGHT = 260
+internal const val NEW_RELEASE_CARD_WIDTH = 130
+internal const val PICKS_COVER_WIDTH = 76
+internal const val PICKS_COVER_HEIGHT = 114
 
-private const val GRADIENT_BLACK_ALPHA = 0.75f
+private const val BOOK_ASPECT_RATIO = 0.67f
+private const val GRADIENT_START_ALPHA = 0f
+private const val GRADIENT_END_ALPHA = 0.85f
+private const val FEATURED_BADGE_LABEL = "Featured"
+private const val FEATURED_CORNER = 20
+private const val CARD_CORNER = 14
+private const val PICKS_CORNER = 10
+
 private val GENRES = listOf(
-    "Fiction",
-    "Fantasy",
-    "Mystery",
-    "Romance",
-    "Sci-Fi",
-    "History",
-    "Biography",
-    "Science",
+    "Fiction", "Fantasy", "Mystery", "Romance",
+    "Sci-Fi", "History", "Biography", "Science",
 )
 
 internal fun filterByGenre(books: List<Book>, genre: String?): List<Book> {
@@ -73,13 +77,19 @@ internal fun GenreChipRow(selectedGenre: String?, onGenreSelected: (String) -> U
     LazyRow(
         contentPadding = PaddingValues(horizontal = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.padding(vertical = 12.dp),
+        modifier = Modifier.padding(vertical = 10.dp),
     ) {
         items(GENRES) { genre ->
             FilterChip(
                 selected = selectedGenre == genre,
                 onClick = { onGenreSelected(genre) },
-                label = { Text(text = genre, style = MaterialTheme.typography.labelMedium) },
+                label = {
+                    Text(
+                        text = genre,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (selectedGenre == genre) FontWeight.Bold else FontWeight.Normal,
+                    )
+                },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = PrimaryTeal,
                     selectedLabelColor = CardWhite,
@@ -92,33 +102,37 @@ internal fun GenreChipRow(selectedGenre: String?, onGenreSelected: (String) -> U
 @Composable
 internal fun FeaturedBookCard(book: Book, onClick: () -> Unit) {
     val gradient = Brush.verticalGradient(
-        listOf(Color.Transparent, Color.Black.copy(alpha = GRADIENT_BLACK_ALPHA)),
+        listOf(
+            Color.Black.copy(alpha = GRADIENT_START_ALPHA),
+            Color.Black.copy(alpha = GRADIENT_END_ALPHA),
+        ),
     )
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(FEATURED_HEIGHT.dp)
             .padding(horizontal = 20.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(FEATURED_CORNER.dp))
             .clickable(onClick = onClick),
     ) {
         AsyncImage(
             model = book.imageUrl,
-            contentDescription = null,
+            contentDescription = book.title,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
         )
         Box(modifier = Modifier.fillMaxSize().background(gradient))
         Surface(
-            modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
+            modifier = Modifier.align(Alignment.TopStart).padding(14.dp),
             shape = RoundedCornerShape(20.dp),
-            color = PrimaryTeal,
+            color = PrimaryTeal.copy(alpha = 0.9f),
         ) {
             Text(
-                text = "Featured",
+                text = FEATURED_BADGE_LABEL,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 style = MaterialTheme.typography.labelSmall,
                 color = CardWhite,
+                fontWeight = FontWeight.Bold,
             )
         }
         Column(modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)) {
@@ -126,14 +140,21 @@ internal fun FeaturedBookCard(book: Book, onClick: () -> Unit) {
                 text = book.title,
                 style = MaterialTheme.typography.titleLarge,
                 color = Color.White,
+                fontWeight = FontWeight.Bold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = book.authors.firstOrNull().orEmpty(),
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.8f),
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.85f),
+                fontStyle = FontStyle.Italic,
             )
+            if (book.averageRating > 0f) {
+                Spacer(modifier = Modifier.height(6.dp))
+                InlineRatingRow(rating = book.averageRating)
+            }
         }
     }
 }
@@ -142,113 +163,163 @@ internal fun FeaturedBookCard(book: Book, onClick: () -> Unit) {
 internal fun HorizontalBooksRow(books: List<Book>, onBookClick: (String) -> Unit) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         items(books, key = { it.id }) { book ->
-            CompactBookCard(book = book, onClick = { onBookClick(book.id) })
+            NewReleaseCard(book = book, onClick = { onBookClick(book.id) })
         }
     }
 }
 
 @Composable
-private fun CompactBookCard(book: Book, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier.width(COMPACT_CARD_WIDTH.dp).clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-        Column {
-            AsyncImage(
-                model = book.imageUrl,
-                contentDescription = null,
-                modifier = Modifier
-                    .width(COMPACT_CARD_WIDTH.dp)
-                    .height(COMPACT_CARD_HEIGHT.dp),
-                contentScale = ContentScale.Crop,
-            )
-            Text(
-                text = book.title,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(8.dp),
-            )
-        }
-    }
-}
-
-@Composable
-internal fun BookCardRow(pair: List<Book>, onBookClick: (String) -> Unit) {
-    Row(
+private fun NewReleaseCard(book: Book, onClick: () -> Unit) {
+    Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .width(NEW_RELEASE_CARD_WIDTH.dp)
+            .clickable(onClick = onClick),
     ) {
-        pair.forEach { book ->
-            ExploreBookCard(
-                book = book,
-                onClick = { onBookClick(book.id) },
-                modifier = Modifier.weight(1f),
-            )
+        Card(
+            shape = RoundedCornerShape(CARD_CORNER.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(NEW_RELEASE_CARD_WIDTH.dp)
+                    .aspectRatio(BOOK_ASPECT_RATIO),
+            ) {
+                AsyncImage(
+                    model = book.imageUrl,
+                    contentDescription = book.title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            }
         }
-        if (pair.size == 1) Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = book.title,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = book.authors.firstOrNull().orEmpty(),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
 @Composable
-private fun ExploreBookCard(book: Book, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier.clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-        Column {
-            AsyncImage(
-                model = book.imageUrl,
-                contentDescription = null,
-                modifier = Modifier.fillMaxWidth().height(BOOK_CARD_IMAGE_HEIGHT.dp),
-                contentScale = ContentScale.Crop,
-            )
-            Column(modifier = Modifier.padding(10.dp)) {
+internal fun TopPicksListItem(book: Book, showDivider: Boolean, onClick: () -> Unit) {
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Card(
+                shape = RoundedCornerShape(PICKS_CORNER.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(PICKS_COVER_WIDTH.dp)
+                        .height(PICKS_COVER_HEIGHT.dp),
+                ) {
+                    AsyncImage(
+                        model = book.imageUrl,
+                        contentDescription = book.title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = book.title,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = book.authors.firstOrNull().orEmpty(),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.bodySmall,
                     fontStyle = FontStyle.Italic,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (book.averageRating > 0f) RatingRow(rating = book.averageRating)
+                if (book.categories.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = PrimaryTeal.copy(alpha = 0.12f),
+                    ) {
+                        Text(
+                            text = book.categories.first().take(20),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = PrimaryTeal,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (book.averageRating > 0f) {
+                        InlineRatingRow(rating = book.averageRating)
+                        Spacer(modifier = Modifier.width(10.dp))
+                    }
+                    if (book.pageCount > 0) {
+                        Text(
+                            text = "${book.pageCount} pages",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
+        }
+        if (showDivider) {
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+            )
         }
     }
 }
 
 @Composable
 internal fun RatingRow(rating: Float) {
+    InlineRatingRow(rating = rating)
+}
+
+@Composable
+private fun InlineRatingRow(rating: Float) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = String.format(Locale.US, "%.1f", rating),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(modifier = Modifier.width(4.dp))
         Icon(
             imageVector = Icons.Default.Star,
             contentDescription = null,
             tint = StarGold,
-            modifier = Modifier.size(12.dp),
+            modifier = Modifier.size(13.dp),
+        )
+        Spacer(modifier = Modifier.width(3.dp))
+        Text(
+            text = String.format(Locale.US, "%.1f", rating),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

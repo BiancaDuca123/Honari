@@ -29,6 +29,8 @@ private fun GoogleBookItem.createBook(thumbnail: String, isbn: String): Book = B
 fun GoogleBookItem.toDomain(): Book {
     val thumbnail = volumeInfo.imageLinks?.thumbnail
         ?.replace("http://", "https://")
+        ?.replace("zoom=1", "zoom=5")
+        ?.replace("&edge=curl", "")
         ?: ""
     return createBook(thumbnail = thumbnail, isbn = extractIsbn())
 }
