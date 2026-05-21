@@ -53,6 +53,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.honari.app.domain.model.Book
 import com.honari.app.domain.model.ReadingStatus
+import com.honari.app.domain.model.Review
 import com.honari.app.presentation.theme.BrownHeadline
 import com.honari.app.presentation.theme.CardWhite
 import com.honari.app.presentation.theme.ErrorRed
@@ -107,6 +108,8 @@ fun BookDetailScreen(
                 onSaveWishlist = { viewModel.saveBook(ReadingStatus.WANT_TO_READ) },
                 onSaveRead = { viewModel.saveBook(ReadingStatus.READ) },
                 onReview = { viewModel.setReviewSheetVisible(true) },
+                onEditReview = { review -> viewModel.setReviewSheetVisible(true, review) },
+                onDeleteReview = viewModel::deleteReview,
             )
         }
 
@@ -130,6 +133,7 @@ fun BookDetailScreen(
         ) {
             ReviewSheet(
                 uiState = uiState,
+                isEditing = uiState.editingReviewId != null,
                 onReviewChanged = viewModel::onReviewChanged,
                 onSubmit = viewModel::submitReview,
                 onDismiss = { viewModel.setReviewSheetVisible(false) },
@@ -146,6 +150,8 @@ private fun BookDetailContent(
     onSaveWishlist: () -> Unit,
     onSaveRead: () -> Unit,
     onReview: () -> Unit,
+    onEditReview: (Review) -> Unit,
+    onDeleteReview: (String) -> Unit,
 ) {
     val book = uiState.book ?: return
 
@@ -169,7 +175,12 @@ private fun BookDetailContent(
             item { EmptyReviewsState() }
         } else {
             items(uiState.reviews, key = { it.id }) { review ->
-                ReviewCard(review = review)
+                ReviewCard(
+                    review = review,
+                    isOwner = review.userId == uiState.currentUserId,
+                    onEdit = { onEditReview(review) },
+                    onDelete = { onDeleteReview(review.id) },
+                )
             }
         }
     }
@@ -241,6 +252,8 @@ private fun BookSummarySection(book: Book) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
+        Spacer(modifier = Modifier.height(10.dp))
+        BookRatingRow(rating = book.averageRating, ratingsCount = book.ratingsCount)
         Spacer(modifier = Modifier.height(20.dp))
         BookMetricsRow(book = book)
     }
@@ -348,6 +361,7 @@ private fun BookActionSection(
 @Composable
 private fun ReviewSheet(
     uiState: BookDetailUiState,
+    isEditing: Boolean,
     onReviewChanged: (String, Float) -> Unit,
     onSubmit: () -> Unit,
     onDismiss: () -> Unit,
@@ -359,7 +373,7 @@ private fun ReviewSheet(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            text = "Write a Review",
+            text = if (isEditing) "Edit Review" else "Write a Review",
             style = MaterialTheme.typography.headlineSmall,
             color = BrownHeadline,
         )
@@ -406,7 +420,7 @@ private fun ReviewSheet(
                         strokeWidth = 2.dp,
                     )
                 } else {
-                    Text("Submit")
+                    Text(if (isEditing) "Update" else "Submit")
                 }
             }
         }

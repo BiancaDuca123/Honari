@@ -23,15 +23,18 @@ private const val SAVE_ERROR_MESSAGE = "We couldn't save this book right now."
 private const val LOAD_ERROR_MESSAGE = "We couldn't load this book right now."
 private const val REVIEW_ERROR_MESSAGE = "Couldn't submit review. Please try again."
 private const val REVIEW_AUTH_ERROR = "Sign in to leave a review."
+private const val DELETE_ERROR_MESSAGE = "Couldn't delete review. Please try again."
 
 data class BookDetailUiState(
     val book: Book? = null,
     val reviews: List<Review> = emptyList(),
+    val currentUserId: String? = null,
     val isInLibrary: Boolean = false,
     val isLoading: Boolean = true,
     val error: String? = null,
     val successMessage: String? = null,
     val showReviewSheet: Boolean = false,
+    val editingReviewId: String? = null,
     val reviewText: String = "",
     val reviewRating: Float = 0f,
     val isSubmittingReview: Boolean = false,
@@ -51,6 +54,8 @@ class BookDetailViewModel @Inject constructor(
     val uiState: StateFlow<BookDetailUiState> = _uiState.asStateFlow()
 
     init {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        _uiState.update { it.copy(currentUserId = uid) }
         observeLibraryState()
         observeReviews()
         loadBook()
@@ -89,11 +94,18 @@ class BookDetailViewModel @Inject constructor(
         }
     }
 
-    fun setReviewSheetVisible(visible: Boolean) {
+    fun setReviewSheetVisible(visible: Boolean, review: Review? = null) {
         if (visible) {
-            _uiState.update { it.copy(showReviewSheet = true, reviewText = "", reviewRating = 0f) }
+            _uiState.update {
+                it.copy(
+                    showReviewSheet = true,
+                    editingReviewId = review?.id,
+                    reviewText = review?.text.orEmpty(),
+                    reviewRating = review?.rating ?: 0f,
+                )
+            }
         } else {
-            _uiState.update { it.copy(showReviewSheet = false) }
+            _uiState.update { it.copy(showReviewSheet = false, editingReviewId = null) }
         }
     }
 
@@ -114,6 +126,7 @@ class BookDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmittingReview = true) }
             val review = Review(
+                id = state.editingReviewId.orEmpty(),
                 bookId = book.id,
                 userId = user.uid,
                 displayName = user.displayName.orEmpty(),
@@ -124,11 +137,13 @@ class BookDetailViewModel @Inject constructor(
             )
             reviewRepository.addReview(review)
                 .onSuccess {
+                    val msg = if (state.editingReviewId != null) "Review updated!" else "Review submitted!"
                     _uiState.update {
                         it.copy(
                             showReviewSheet = false,
+                            editingReviewId = null,
                             isSubmittingReview = false,
-                            successMessage = "Review submitted!",
+                            successMessage = msg,
                         )
                     }
                 }
@@ -137,6 +152,13 @@ class BookDetailViewModel @Inject constructor(
                         it.copy(isSubmittingReview = false, error = REVIEW_ERROR_MESSAGE)
                     }
                 }
+        }
+    }
+
+    fun deleteReview(reviewId: String) {
+        viewModelScope.launch {
+            reviewRepository.deleteReview(reviewId)
+                .onFailure { _uiState.update { it.copy(error = DELETE_ERROR_MESSAGE) } }
         }
     }
 
