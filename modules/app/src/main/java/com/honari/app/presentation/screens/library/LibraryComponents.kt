@@ -225,6 +225,7 @@ private fun BookRow(book: Book, onClick: () -> Unit) {
 @Composable
 private fun StatusBadge(status: ReadingStatus?) {
     val (label, color) = when (status) {
+        ReadingStatus.SAVED -> "Saved" to MaterialTheme.colorScheme.onSurfaceVariant
         ReadingStatus.READ -> "Read" to PrimaryTeal
         ReadingStatus.WANT_TO_READ -> "Wish List" to BrownHeadline
         null -> "Saved" to MaterialTheme.colorScheme.onSurfaceVariant

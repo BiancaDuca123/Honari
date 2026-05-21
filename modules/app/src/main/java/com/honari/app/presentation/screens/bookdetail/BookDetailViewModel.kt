@@ -71,7 +71,11 @@ class BookDetailViewModel @Inject constructor(
                     )
                 }
             }.onSuccess {
-                val label = if (status == ReadingStatus.READ) "reads" else "wishlist"
+                val label = when (status) {
+                    ReadingStatus.SAVED -> "library"
+                    ReadingStatus.READ -> "reads"
+                    ReadingStatus.WANT_TO_READ -> "wishlist"
+                }
                 _uiState.update {
                     it.copy(
                         isInLibrary = true,
@@ -146,14 +150,26 @@ class BookDetailViewModel @Inject constructor(
 
     private fun loadBook() {
         viewModelScope.launch {
-            val book = runCatching {
-                libraryRepository.getBookById(bookId) ?: bookRepository.getBookById(bookId)
-            }.getOrNull()
+            val localBook = runCatching { libraryRepository.getBookById(bookId) }.getOrNull()
+            if (localBook != null) {
+                _uiState.update { it.copy(book = localBook, isLoading = false) }
+            }
+            val apiBook = runCatching { bookRepository.getBookById(bookId) }.getOrNull()
+            val merged = when {
+                apiBook != null && localBook != null -> apiBook.copy(
+                    libraryStatus = localBook.libraryStatus,
+                    addedAt = localBook.addedAt,
+                    userRating = localBook.userRating,
+                )
+                apiBook != null -> apiBook
+                localBook != null -> localBook
+                else -> null
+            }
             _uiState.update {
                 it.copy(
-                    book = book,
+                    book = merged,
                     isLoading = false,
-                    error = if (book == null) LOAD_ERROR_MESSAGE else null,
+                    error = if (merged == null) LOAD_ERROR_MESSAGE else null,
                 )
             }
         }

@@ -3,9 +3,10 @@ package com.honari.app.di
 import android.content.Context
 import androidx.room.Room
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import com.honari.app.data.local.dao.LibraryDao
+import com.honari.app.data.local.dao.ReviewDao
 import com.honari.app.data.local.database.HonariDatabase
+import com.honari.app.data.local.database.MIGRATION_1_2
 import com.honari.app.data.repository.AuthRepositoryImpl
 import com.honari.app.data.repository.BookRepositoryImpl
 import com.honari.app.data.repository.LibraryRepositoryImpl
@@ -43,16 +44,16 @@ abstract class DataModule {
         @Provides @Singleton
         fun provideDatabase(@ApplicationContext context: Context): HonariDatabase =
             Room.databaseBuilder(context, HonariDatabase::class.java, "honari.db")
-                .fallbackToDestructiveMigration()
+                .addMigrations(MIGRATION_1_2)
                 .build()
 
         @Provides @Singleton
         fun provideLibraryDao(db: HonariDatabase): LibraryDao = db.libraryDao()
 
         @Provides @Singleton
-        fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
+        fun provideReviewDao(db: HonariDatabase): ReviewDao = db.reviewDao()
 
         @Provides @Singleton
-        fun provideFirestore(): FirebaseFirestore = FirebaseFirestore.getInstance()
+        fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
     }
 }

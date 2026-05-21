@@ -103,6 +103,7 @@ fun BookDetailScreen(
             else -> BookDetailContent(
                 uiState = uiState,
                 onBack = onBack,
+                onSaveToLibrary = { viewModel.saveBook(ReadingStatus.SAVED) },
                 onSaveWishlist = { viewModel.saveBook(ReadingStatus.WANT_TO_READ) },
                 onSaveRead = { viewModel.saveBook(ReadingStatus.READ) },
                 onReview = { viewModel.setReviewSheetVisible(true) },
@@ -141,6 +142,7 @@ fun BookDetailScreen(
 private fun BookDetailContent(
     uiState: BookDetailUiState,
     onBack: () -> Unit,
+    onSaveToLibrary: () -> Unit,
     onSaveWishlist: () -> Unit,
     onSaveRead: () -> Unit,
     onReview: () -> Unit,
@@ -156,6 +158,7 @@ private fun BookDetailContent(
         item {
             BookActionSection(
                 isInLibrary = uiState.isInLibrary,
+                onSaveToLibrary = onSaveToLibrary,
                 onSaveWishlist = onSaveWishlist,
                 onSaveRead = onSaveRead,
                 onReview = onReview,
@@ -276,6 +279,7 @@ private fun MetricItem(label: String, value: String) {
 @Composable
 private fun BookActionSection(
     isInLibrary: Boolean,
+    onSaveToLibrary: () -> Unit,
     onSaveWishlist: () -> Unit,
     onSaveRead: () -> Unit,
     onReview: () -> Unit,
@@ -322,7 +326,7 @@ private fun BookActionSection(
             }
         } else {
             Button(
-                onClick = onSaveWishlist,
+                onClick = onSaveToLibrary,
                 modifier = Modifier.fillMaxWidth(),
                 shape = ActionShape,
                 colors = ButtonDefaults.buttonColors(
