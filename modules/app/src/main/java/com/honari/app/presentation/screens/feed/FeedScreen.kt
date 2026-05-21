@@ -18,17 +18,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -53,9 +48,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -65,11 +61,13 @@ import com.honari.app.presentation.theme.BrownHeadline
 import com.honari.app.presentation.theme.CardWhite
 import com.honari.app.presentation.theme.ErrorRed
 import com.honari.app.presentation.theme.PrimaryTeal
-import com.honari.app.presentation.theme.StarGold
-import java.util.Locale
-import kotlin.math.max
 
 private const val SKELETON_COUNT = 6
+private const val NEW_RELEASES_COUNT = 5
+private const val SKELETON_ALPHA = 0.35f
+private const val SECTION_FEATURED = "Featured"
+private const val SECTION_NEW_RELEASES = "New Releases"
+private const val SECTION_TOP_PICKS = "Top Picks for You"
 
 @Composable
 fun FeedScreen(
@@ -114,8 +112,10 @@ fun FeedScreen(
                 )
                 else -> ExploreContent(
                     books = uiState.books,
+                    selectedGenre = uiState.selectedGenre,
                     isRefreshing = uiState.isLoading,
                     onRefresh = viewModel::refreshFeed,
+                    onGenreSelected = viewModel::onGenreSelected,
                     onBookClick = onBookClick,
                 )
             }
@@ -160,13 +160,6 @@ private fun ExploreTopBar(onToggleSearch: () -> Unit) {
                 Icon(
                     Icons.Default.Search,
                     contentDescription = "Search",
-                    tint = MaterialTheme.colorScheme.onBackground,
-                )
-            }
-            IconButton(onClick = {}) {
-                Icon(
-                    Icons.Default.Apps,
-                    contentDescription = "Grid view",
                     tint = MaterialTheme.colorScheme.onBackground,
                 )
             }
@@ -221,8 +214,8 @@ private fun SearchField(
             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
             disabledContainerColor = MaterialTheme.colorScheme.surface,
             focusedIndicatorColor = PrimaryTeal,
-            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-            disabledIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
             focusedTextColor = MaterialTheme.colorScheme.onSurface,
             unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
             cursorColor = PrimaryTeal,
@@ -233,40 +226,41 @@ private fun SearchField(
 @Composable
 private fun ExploreContent(
     books: List<Book>,
+    selectedGenre: String?,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
+    onGenreSelected: (String) -> Unit,
     onBookClick: (String) -> Unit,
 ) {
+    val displayed = filterByGenre(books, selectedGenre)
+    val featured = displayed.firstOrNull()
+    val newReleases = displayed.drop(1).take(NEW_RELEASES_COUNT)
+    val topPicks = displayed.drop(1 + NEW_RELEASES_COUNT)
+
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
         modifier = Modifier.fillMaxSize(),
     ) {
         if (books.isEmpty()) {
-            EmptyState(message = "No books available yet. Pull to refresh and try again.")
+            EmptyState(message = "No books available yet. Pull to refresh.")
         } else {
-            val topPicks = books.take(max(2, books.size / 2))
-            val recommendations = books.drop(topPicks.size).ifEmpty { books.take(2) }
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    SectionTitle(title = "Top Pick for You", topPadding = 8.dp)
-                }
-                items(topPicks, key = { it.id }) { book ->
-                    ExploreBookCard(book = book, onClick = { onBookClick(book.id) })
-                }
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    SectionTitle(
-                        title = "People with similar interests also like",
-                        topPadding = 12.dp,
+            LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+                item {
+                    GenreChipRow(
+                        selectedGenre = selectedGenre,
+                        onGenreSelected = onGenreSelected,
                     )
                 }
-                items(recommendations, key = { "similar-${it.id}" }) { book ->
-                    ExploreBookCard(book = book, onClick = { onBookClick(book.id) })
+                featured?.let { book ->
+                    item { SectionTitle(title = SECTION_FEATURED, topPadding = 0.dp) }
+                    item { FeaturedBookCard(book = book, onClick = { onBookClick(book.id) }) }
+                }
+                item { SectionTitle(title = SECTION_NEW_RELEASES, topPadding = 16.dp) }
+                item { HorizontalBooksRow(books = newReleases, onBookClick = onBookClick) }
+                item { SectionTitle(title = SECTION_TOP_PICKS, topPadding = 16.dp) }
+                items(topPicks.chunked(2), key = { it.first().id }) { pair ->
+                    BookCardRow(pair = pair, onBookClick = onBookClick)
                 }
             }
         }
@@ -274,12 +268,12 @@ private fun ExploreContent(
 }
 
 @Composable
-private fun SectionTitle(title: String, topPadding: androidx.compose.ui.unit.Dp) {
+private fun SectionTitle(title: String, topPadding: Dp) {
     Text(
         text = title,
         style = MaterialTheme.typography.headlineSmall,
         color = BrownHeadline,
-        modifier = Modifier.padding(top = topPadding, bottom = 4.dp),
+        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = topPadding, bottom = 4.dp),
     )
 }
 
@@ -306,49 +300,6 @@ private fun SearchResultsContent(
             ) {
                 items(books, key = { it.id }) { book ->
                     SearchResultItem(book = book, onClick = { onBookClick(book.id) })
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ExploreBookCard(book: Book, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-        Column {
-            AsyncImage(
-                model = book.imageUrl,
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(240.dp),
-                contentScale = ContentScale.Crop,
-            )
-            Column(modifier = Modifier.padding(10.dp)) {
-                Text(
-                    text = book.title,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = book.authors.firstOrNull().orEmpty(),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontStyle = FontStyle.Italic,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (book.averageRating > 0f) {
-                    RatingRow(rating = book.averageRating)
                 }
             }
         }
@@ -401,42 +352,55 @@ private fun SearchResultItem(book: Book, onClick: () -> Unit) {
 }
 
 @Composable
-private fun RatingRow(rating: Float) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = String.format(Locale.US, "%.1f", rating),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Icon(
-            imageVector = Icons.Default.Star,
-            contentDescription = null,
-            tint = StarGold,
-            modifier = Modifier.size(12.dp),
-        )
-    }
-}
-
-@Composable
 private fun LoadingFeed() {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            SectionTitle(title = "Top Pick for You", topPadding = 8.dp)
-        }
-        items(SKELETON_COUNT) {
+    val skeletonColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = SKELETON_ALPHA)
+    LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+        item { SectionTitle(title = SECTION_FEATURED, topPadding = 8.dp) }
+        item {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(240.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                    .height(FEATURED_HEIGHT.dp)
+                    .padding(horizontal = 20.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(skeletonColor),
             )
+        }
+        item { SectionTitle(title = SECTION_NEW_RELEASES, topPadding = 16.dp) }
+        item {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(NEW_RELEASES_COUNT) {
+                    Box(
+                        modifier = Modifier
+                            .width(COMPACT_CARD_WIDTH.dp)
+                            .height(COMPACT_CARD_HEIGHT.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(skeletonColor),
+                    )
+                }
+            }
+        }
+        item { SectionTitle(title = SECTION_TOP_PICKS, topPadding = 16.dp) }
+        items(SKELETON_COUNT / 2) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                repeat(2) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(BOOK_CARD_IMAGE_HEIGHT.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(skeletonColor),
+                    )
+                }
+            }
         }
     }
 }

@@ -24,6 +24,7 @@ private const val MAX_AUTHORS = 2
 data class FeedUiState(
     val isLoading: Boolean = false,
     val books: List<Book> = emptyList(),
+    val selectedGenre: String? = null,
     val searchQuery: String = "",
     val searchResults: List<Book> = emptyList(),
     val isSearching: Boolean = false,
@@ -122,5 +123,9 @@ class FeedViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    fun onGenreSelected(genre: String) {
+        _uiState.update { it.copy(selectedGenre = if (it.selectedGenre == genre) null else genre) }
     }
 }

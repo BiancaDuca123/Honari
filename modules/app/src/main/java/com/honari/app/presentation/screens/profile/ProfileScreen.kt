@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -64,9 +63,7 @@ import com.honari.app.presentation.theme.PrimaryTeal
 private const val DEFAULT_USERNAME = "reader"
 private const val DEFAULT_DISPLAY_NAME = "Honari Reader"
 private const val DEFAULT_BIO = "Book enthusiast · Reading is life"
-private val HeaderVisualHeight = 140.dp
-private val AvatarSize = 100.dp
-private val AvatarOverlap = 50.dp
+private val AvatarSize = 88.dp
 
 @Composable
 fun ProfileScreen(viewModel: ProfileViewModel = hiltViewModel()) {
@@ -100,26 +97,10 @@ private fun ProfileContent(
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        ProfileHeader(photoUrl = uiState.user?.photoUrl)
-        Spacer(modifier = Modifier.height(60.dp))
-        Text(
-            text = uiState.user?.displayName ?: DEFAULT_DISPLAY_NAME,
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = "@$username",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = DEFAULT_BIO,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 28.dp),
+        ProfileHeader(
+            photoUrl = uiState.user?.photoUrl,
+            displayName = uiState.user?.displayName ?: DEFAULT_DISPLAY_NAME,
+            username = username,
         )
         Spacer(modifier = Modifier.height(16.dp))
         StatsRow(
@@ -140,49 +121,61 @@ private fun ProfileContent(
 }
 
 @Composable
-private fun ProfileHeader(photoUrl: String?) {
+private fun ProfileHeader(photoUrl: String?, displayName: String, username: String) {
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(HeaderVisualHeight + AvatarOverlap + statusBarPadding),
+            .background(PrimaryTeal)
+            .padding(top = statusBarPadding),
     ) {
-        Box(
+        IconButton(
+            onClick = {},
+            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = "Settings",
+                tint = CardWhite,
+            )
+        }
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(HeaderVisualHeight + statusBarPadding)
-                .background(PrimaryTeal),
+                .padding(horizontal = 24.dp, vertical = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = statusBarPadding, start = 12.dp, end = 8.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = {}) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = CardWhite,
-                    )
-                }
-            }
+            ProfileAvatar(photoUrl = photoUrl)
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = displayName,
+                style = MaterialTheme.typography.headlineMedium,
+                color = CardWhite,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                text = "@$username",
+                style = MaterialTheme.typography.bodyMedium,
+                color = CardWhite.copy(alpha = 0.8f),
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = DEFAULT_BIO,
+                style = MaterialTheme.typography.bodySmall,
+                color = CardWhite.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+            Spacer(modifier = Modifier.height(8.dp))
         }
-        ProfileAvatar(
-            photoUrl = photoUrl,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .offset(y = AvatarOverlap),
-        )
     }
 }
 
 @Composable
-private fun ProfileAvatar(photoUrl: String?, modifier: Modifier = Modifier) {
+private fun ProfileAvatar(photoUrl: String?) {
     Box(
-        modifier = modifier
+        modifier = Modifier
             .size(AvatarSize)
             .border(width = 3.dp, color = CardWhite, shape = CircleShape)
             .clip(CircleShape)
