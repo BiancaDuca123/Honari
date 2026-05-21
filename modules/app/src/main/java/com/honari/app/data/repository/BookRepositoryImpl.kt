@@ -10,10 +10,11 @@ import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private const val MIN_YEAR = 1995
-private const val POPULAR_THRESHOLD = 1000
-private const val FETCH_MULTIPLIER = 2
+private const val MAX_AGE_YEARS = 5
 private const val API_MAX_RESULTS = 40
+private const val FETCH_MULTIPLIER = 2
+
+private val minYear: Int get() = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR) - MAX_AGE_YEARS
 
 @Singleton
 class BookRepositoryImpl @Inject constructor(
@@ -68,5 +69,5 @@ class BookRepositoryImpl @Inject constructor(
 private fun Book.isEligibleForFeed(): Boolean {
     if (imageUrl.isEmpty()) return false
     val year = publishedDate.take(4).toIntOrNull() ?: 0
-    return year >= MIN_YEAR || ratingsCount >= POPULAR_THRESHOLD
+    return year >= minYear
 }
