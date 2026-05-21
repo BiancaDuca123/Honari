@@ -191,7 +191,6 @@ class BookDetailViewModel @Inject constructor(
                 it.copy(
                     book = merged,
                     isLoading = false,
-                    error = if (merged == null) LOAD_ERROR_MESSAGE else null,
                 )
             }
         }

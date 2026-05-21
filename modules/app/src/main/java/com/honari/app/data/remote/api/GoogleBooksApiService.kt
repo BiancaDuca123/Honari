@@ -13,6 +13,7 @@ interface GoogleBooksApiService {
         @Query("maxResults") maxResults: Int = 20,
         @Query("orderBy") orderBy: String = "relevance",
         @Query("printType") printType: String = "books",
+        @Query("langRestrict") langRestrict: String? = null,
         @Query("key") apiKey: String,
     ): GoogleBooksResponse
 

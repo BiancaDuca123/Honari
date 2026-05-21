@@ -5,16 +5,26 @@ import com.honari.app.data.remote.api.GoogleBooksApiService
 import com.honari.app.data.remote.mapper.toDomain
 import com.honari.app.domain.model.Book
 import com.honari.app.domain.repository.BookRepository
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private const val MAX_AGE_YEARS = 5
 private const val API_MAX_RESULTS = 40
-private const val FETCH_MULTIPLIER = 2
+private const val FEED_RESULTS_PER_QUERY = 20
+private const val LANG_RO = "ro"
 
-private val minYear: Int get() = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR) - MAX_AGE_YEARS
+// Queries that surface books actually popular on Romanian market
+private val POPULAR_RO_QUERIES = listOf(
+    "bestseller fiction",
+    "bestseller thriller",
+    "bestseller romance",
+    "popular fantasy",
+    "bestseller mystery",
+)
 
 @Singleton
 class BookRepositoryImpl @Inject constructor(
@@ -27,31 +37,42 @@ class BookRepositoryImpl @Inject constructor(
         query: String,
         maxResults: Int,
     ): Flow<List<Book>> = flow {
-        val books = api.searchBooks(
-            query = query,
-            maxResults = (maxResults * FETCH_MULTIPLIER).coerceAtMost(API_MAX_RESULTS),
-            orderBy = "newest",
-            apiKey = apiKey,
-        ).items
-            ?.map { it.toDomain() }
-            ?.distinctBy { it.id }
-            ?.filter { it.isEligibleForFeed() }
-            ?.take(maxResults)
-            ?: emptyList()
-        emit(books)
+        emit(fetchPopularRoBooks(maxResults))
+    }
+
+    private suspend fun fetchPopularRoBooks(maxResults: Int): List<Book> = coroutineScope {
+        // Fetch multiple popular queries in parallel, restricted to Romanian language
+        val deferred = POPULAR_RO_QUERIES.map { q ->
+            async {
+                runCatching {
+                    api.searchBooks(
+                        query = q,
+                        maxResults = FEED_RESULTS_PER_QUERY,
+                        orderBy = "relevance",
+                        langRestrict = LANG_RO,
+                        apiKey = apiKey,
+                    ).items?.map { it.toDomain() } ?: emptyList()
+                }.getOrDefault(emptyList())
+            }
+        }
+        deferred.awaitAll()
+            .flatten()
+            .filter { it.imageUrl.isNotEmpty() }
+            .distinctBy { it.id }
+            .sortedByDescending { it.ratingsCount }
+            .take(maxResults)
     }
 
     override suspend fun searchBooks(query: String, maxResults: Int): List<Book> =
         api.searchBooks(
             query = query,
-            maxResults = (maxResults * FETCH_MULTIPLIER).coerceAtMost(API_MAX_RESULTS),
+            maxResults = maxResults.coerceAtMost(API_MAX_RESULTS),
             apiKey = apiKey,
         )
             .items
             ?.map { it.toDomain() }
             ?.distinctBy { it.id }
-            ?.filter { it.isEligibleForFeed() }
-            ?.take(maxResults)
+            ?.filter { it.imageUrl.isNotEmpty() }
             ?: emptyList()
 
     override suspend fun getBookById(googleBooksId: String): Book? =
@@ -64,10 +85,4 @@ class BookRepositoryImpl @Inject constructor(
                 ?.firstOrNull()
                 ?.toDomain()
         }.getOrNull()
-}
-
-private fun Book.isEligibleForFeed(): Boolean {
-    if (imageUrl.isEmpty()) return false
-    val year = publishedDate.take(4).toIntOrNull() ?: 0
-    return year >= minYear
 }

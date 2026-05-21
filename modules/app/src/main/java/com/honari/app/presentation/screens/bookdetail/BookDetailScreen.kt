@@ -79,6 +79,10 @@ fun BookDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    LaunchedEffect(uiState.isLoading, uiState.book) {
+        if (!uiState.isLoading && uiState.book == null) onBack()
+    }
+
     LaunchedEffect(uiState.error) {
         uiState.error?.let { message ->
             snackbarHostState.showSnackbar(message)
@@ -99,8 +103,7 @@ fun BookDetailScreen(
             .background(MaterialTheme.colorScheme.background),
     ) {
         when {
-            uiState.isLoading && uiState.book == null -> LoadingState()
-            uiState.book == null -> MissingBookState(bookId = bookId, onBack = onBack)
+            uiState.isLoading || uiState.book == null -> LoadingState()
             else -> BookDetailContent(
                 uiState = uiState,
                 onBack = onBack,

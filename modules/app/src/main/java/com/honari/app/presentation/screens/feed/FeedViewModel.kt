@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-private const val DEFAULT_QUERY = "subject:fiction"
 private const val SEARCH_DEBOUNCE_MS = 500L
 private const val MAX_SUBJECTS = 3
 private const val MAX_TOP_PICKS = 8
@@ -53,7 +52,8 @@ class FeedViewModel @Inject constructor(
         feedJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             runCatching {
-                bookRepository.getFeedBooks(query = DEFAULT_QUERY).collect { books ->
+                // query param ignored by getFeedBooks — it always fetches popular RO books
+                bookRepository.getFeedBooks(query = "").collect { books ->
                     _uiState.update { it.copy(isLoading = false, books = books) }
                 }
             }.onFailure { throwable ->
@@ -133,7 +133,7 @@ class FeedViewModel @Inject constructor(
         feedJob?.cancel()
         feedJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            val query = if (newGenre != null) "subject:${newGenre.lowercase()}" else DEFAULT_QUERY
+            val query = if (newGenre != null) "bestseller ${newGenre.lowercase()}" else ""
             runCatching {
                 bookRepository.getFeedBooks(query = query).collect { books ->
                     _uiState.update { it.copy(isLoading = false, books = books) }
