@@ -3,6 +3,7 @@ package com.honari.app.presentation.screens.bookdetail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
 import com.honari.app.domain.model.Book
 import com.honari.app.domain.model.ReadingStatus
 import com.honari.app.domain.model.Review
@@ -20,6 +21,7 @@ import javax.inject.Inject
 private const val BOOK_ID_ARG = "bookId"
 private const val SAVE_ERROR_MESSAGE = "We couldn't save this book right now."
 private const val LOAD_ERROR_MESSAGE = "We couldn't load this book right now."
+private const val REVIEW_ERROR_MESSAGE = "Couldn't submit review. Please try again."
 
 data class BookDetailUiState(
     val book: Book? = null,
@@ -27,6 +29,11 @@ data class BookDetailUiState(
     val isInLibrary: Boolean = false,
     val isLoading: Boolean = true,
     val error: String? = null,
+    val successMessage: String? = null,
+    val showReviewSheet: Boolean = false,
+    val reviewText: String = "",
+    val reviewRating: Float = 0f,
+    val isSubmittingReview: Boolean = false,
 )
 
 @HiltViewModel
@@ -63,15 +70,73 @@ class BookDetailViewModel @Inject constructor(
                     )
                 }
             }.onSuccess {
-                _uiState.update { it.copy(isInLibrary = true, error = null) }
+                val label = if (status == ReadingStatus.READ) "reads" else "wishlist"
+                _uiState.update {
+                    it.copy(
+                        isInLibrary = true,
+                        error = null,
+                        successMessage = "Added to your $label!",
+                    )
+                }
             }.onFailure {
                 _uiState.update { it.copy(error = SAVE_ERROR_MESSAGE) }
             }
         }
     }
 
+    fun setReviewSheetVisible(visible: Boolean) {
+        if (visible) {
+            _uiState.update { it.copy(showReviewSheet = true, reviewText = "", reviewRating = 0f) }
+        } else {
+            _uiState.update { it.copy(showReviewSheet = false) }
+        }
+    }
+
+    fun onReviewChanged(text: String, rating: Float) {
+        _uiState.update { it.copy(reviewText = text, reviewRating = rating) }
+    }
+
+    fun submitReview() {
+        val state = _uiState.value
+        val book = state.book ?: return
+        if (state.reviewText.isBlank() || state.reviewRating == 0f) return
+        val user = FirebaseAuth.getInstance().currentUser ?: return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmittingReview = true) }
+            val review = Review(
+                bookId = book.id,
+                userId = user.uid,
+                displayName = user.displayName.orEmpty(),
+                photoUrl = user.photoUrl?.toString(),
+                rating = state.reviewRating,
+                text = state.reviewText,
+                createdAt = System.currentTimeMillis(),
+            )
+            reviewRepository.addReview(review)
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(
+                            showReviewSheet = false,
+                            isSubmittingReview = false,
+                            successMessage = "Review submitted!",
+                        )
+                    }
+                }
+                .onFailure {
+                    _uiState.update {
+                        it.copy(isSubmittingReview = false, error = REVIEW_ERROR_MESSAGE)
+                    }
+                }
+        }
+    }
+
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    fun clearSuccess() {
+        _uiState.update { it.copy(successMessage = null) }
     }
 
     private fun loadBook() {

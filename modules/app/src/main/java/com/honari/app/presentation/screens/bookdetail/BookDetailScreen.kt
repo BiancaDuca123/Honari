@@ -14,28 +14,39 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -46,13 +57,17 @@ import com.honari.app.presentation.theme.BrownHeadline
 import com.honari.app.presentation.theme.CardWhite
 import com.honari.app.presentation.theme.ErrorRed
 import com.honari.app.presentation.theme.PrimaryTeal
+import com.honari.app.presentation.theme.StarGold
+import com.honari.app.presentation.theme.TextSecondary
 
 private const val YEAR_LENGTH = 4
 internal const val EMPTY_METRIC = "—"
 private val HeaderHeight = 200.dp
 private val CoverOffset = 56.dp
-private val ActionShape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+private val ActionShape = RoundedCornerShape(16.dp)
+private const val MAX_RATING = 5
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookDetailScreen(
     bookId: String,
@@ -61,11 +76,19 @@ fun BookDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let { message ->
             snackbarHostState.showSnackbar(message)
             viewModel.clearError()
+        }
+    }
+
+    LaunchedEffect(uiState.successMessage) {
+        uiState.successMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.clearSuccess()
         }
     }
 
@@ -80,8 +103,9 @@ fun BookDetailScreen(
             else -> BookDetailContent(
                 uiState = uiState,
                 onBack = onBack,
-                onSave = { viewModel.saveBook(ReadingStatus.WANT_TO_READ) },
-                onReview = { viewModel.saveBook(ReadingStatus.READ) },
+                onSaveWishlist = { viewModel.saveBook(ReadingStatus.WANT_TO_READ) },
+                onSaveRead = { viewModel.saveBook(ReadingStatus.READ) },
+                onReview = { viewModel.setReviewSheetVisible(true) },
             )
         }
 
@@ -96,13 +120,29 @@ fun BookDetailScreen(
             }
         }
     }
+
+    if (uiState.showReviewSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.setReviewSheetVisible(false) },
+            sheetState = sheetState,
+            containerColor = CardWhite,
+        ) {
+            ReviewSheet(
+                uiState = uiState,
+                onReviewChanged = viewModel::onReviewChanged,
+                onSubmit = viewModel::submitReview,
+                onDismiss = { viewModel.setReviewSheetVisible(false) },
+            )
+        }
+    }
 }
 
 @Composable
 private fun BookDetailContent(
     uiState: BookDetailUiState,
     onBack: () -> Unit,
-    onSave: () -> Unit,
+    onSaveWishlist: () -> Unit,
+    onSaveRead: () -> Unit,
     onReview: () -> Unit,
 ) {
     val book = uiState.book ?: return
@@ -113,7 +153,14 @@ private fun BookDetailContent(
     ) {
         item { BookHeroSection(book = book, onBack = onBack) }
         item { BookSummarySection(book = book) }
-        item { BookActionSection(onSave = onSave, onReview = onReview) }
+        item {
+            BookActionSection(
+                isInLibrary = uiState.isInLibrary,
+                onSaveWishlist = onSaveWishlist,
+                onSaveRead = onSaveRead,
+                onReview = onReview,
+            )
+        }
         item { ReviewsHeader(reviewCount = uiState.reviews.size) }
         if (uiState.reviews.isEmpty()) {
             item { EmptyReviewsState() }
@@ -199,7 +246,6 @@ private fun BookSummarySection(book: Book) {
 @Composable
 private fun BookMetricsRow(book: Book) {
     val year = book.publishedDate.take(YEAR_LENGTH).ifEmpty { EMPTY_METRIC }
-
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -228,35 +274,165 @@ private fun MetricItem(label: String, value: String) {
 }
 
 @Composable
-private fun BookActionSection(onSave: () -> Unit, onReview: () -> Unit) {
-    Row(
+private fun BookActionSection(
+    isInLibrary: Boolean,
+    onSaveWishlist: () -> Unit,
+    onSaveRead: () -> Unit,
+    onReview: () -> Unit,
+) {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(horizontal = 24.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Button(
-            onClick = onSave,
-            modifier = Modifier.weight(1f),
-            shape = ActionShape,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = PrimaryTeal,
-                contentColor = CardWhite,
-            ),
-        ) {
-            Text(text = "Save")
+        if (isInLibrary) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = PrimaryTeal,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = "In your library",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = PrimaryTeal,
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedButton(
+                    onClick = onSaveWishlist,
+                    modifier = Modifier.weight(1f),
+                    shape = ActionShape,
+                    border = BorderStroke(1.dp, PrimaryTeal),
+                ) { Text("Wishlist", color = PrimaryTeal) }
+                Button(
+                    onClick = onSaveRead,
+                    modifier = Modifier.weight(1f),
+                    shape = ActionShape,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryTeal,
+                        contentColor = CardWhite,
+                    ),
+                ) { Text("Mark Read") }
+            }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedButton(
+                    onClick = onSaveWishlist,
+                    modifier = Modifier.weight(1f),
+                    shape = ActionShape,
+                    border = BorderStroke(1.dp, BrownHeadline),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BrownHeadline),
+                ) { Text("Wishlist") }
+                Button(
+                    onClick = onSaveRead,
+                    modifier = Modifier.weight(1f),
+                    shape = ActionShape,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryTeal,
+                        contentColor = CardWhite,
+                    ),
+                ) { Text("Save") }
+            }
         }
         OutlinedButton(
             onClick = onReview,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxWidth(),
             shape = ActionShape,
             border = BorderStroke(1.dp, BrownHeadline),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = BrownHeadline,
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = BrownHeadline),
+        ) { Text("Write a Review") }
+    }
+}
+
+@Composable
+private fun ReviewSheet(
+    uiState: BookDetailUiState,
+    onReviewChanged: (String, Float) -> Unit,
+    onSubmit: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 24.dp, end = 24.dp, bottom = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(
+            text = "Write a Review",
+            style = MaterialTheme.typography.headlineSmall,
+            color = BrownHeadline,
+        )
+        StarRatingRow(
+            rating = uiState.reviewRating,
+            onRatingChanged = { onReviewChanged(uiState.reviewText, it) },
+        )
+        OutlinedTextField(
+            value = uiState.reviewText,
+            onValueChange = { onReviewChanged(it, uiState.reviewRating) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(140.dp),
+            placeholder = { Text("Share your thoughts about this book...", color = TextSecondary) },
+            shape = RoundedCornerShape(12.dp),
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = PrimaryTeal,
+                unfocusedContainerColor = Color.Transparent,
+                focusedContainerColor = Color.Transparent,
             ),
-        ) {
-            Text(text = "Review")
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedButton(
+                onClick = onDismiss,
+                modifier = Modifier.weight(1f),
+                shape = ActionShape,
+            ) { Text("Cancel") }
+            Button(
+                onClick = onSubmit,
+                modifier = Modifier.weight(1f),
+                shape = ActionShape,
+                enabled = uiState.reviewText.isNotBlank() &&
+                    uiState.reviewRating > 0f &&
+                    !uiState.isSubmittingReview,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryTeal,
+                    contentColor = CardWhite,
+                ),
+            ) {
+                if (uiState.isSubmittingReview) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = CardWhite,
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Text("Submit")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StarRatingRow(rating: Float, onRatingChanged: (Float) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        for (i in 1..MAX_RATING) {
+            IconButton(
+                onClick = { onRatingChanged(i.toFloat()) },
+                modifier = Modifier.size(36.dp),
+            ) {
+                Icon(
+                    imageVector = if (i <= rating) Icons.Default.Star else Icons.Default.StarBorder,
+                    contentDescription = "$i stars",
+                    tint = StarGold,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
         }
     }
 }
