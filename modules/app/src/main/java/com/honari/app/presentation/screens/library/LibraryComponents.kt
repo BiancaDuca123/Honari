@@ -1,5 +1,6 @@
 package com.honari.app.presentation.screens.library
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,21 +11,29 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -32,6 +41,7 @@ import com.honari.app.domain.model.Book
 import com.honari.app.domain.model.ReadingStatus
 import com.honari.app.presentation.theme.BrownHeadline
 import com.honari.app.presentation.theme.CardWhite
+import com.honari.app.presentation.theme.ErrorRed
 import com.honari.app.presentation.theme.PrimaryTeal
 
 @Composable
@@ -80,6 +90,7 @@ internal fun LibraryContent(
     uiState: LibraryUiState,
     folders: List<LibraryFolder>,
     onSelectFilter: (LibraryFilter) -> Unit,
+    onRemoveBook: (String) -> Unit,
 ) {
     Box(modifier = modifier) {
         when {
@@ -94,7 +105,7 @@ internal fun LibraryContent(
             uiState.displayedBooks.isEmpty() -> EmptyLibraryState(
                 message = "No books in ${uiState.selectedFilter.title} yet.",
             )
-            else -> FilteredBooksList(books = uiState.displayedBooks)
+            else -> FilteredBooksList(books = uiState.displayedBooks, onRemoveBook = onRemoveBook)
         }
     }
 }
@@ -119,14 +130,45 @@ private fun EmptyLibraryState(message: String) {
 }
 
 @Composable
-private fun FilteredBooksList(books: List<Book>) {
+private fun FilteredBooksList(books: List<Book>, onRemoveBook: (String) -> Unit) {
     LazyColumn(
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 100.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         items(books, key = { it.id }) { book ->
-            LibraryBookRow(book = book)
+            SwipeToDismissBookRow(book = book, onRemove = { onRemoveBook(book.id) })
         }
+    }
+}
+
+@Composable
+private fun SwipeToDismissBookRow(book: Book, onRemove: () -> Unit) {
+    val dismissState = rememberSwipeToDismissBoxState()
+    LaunchedEffect(dismissState.settledValue) {
+        if (dismissState.settledValue == SwipeToDismissBoxValue.EndToStart) onRemove()
+    }
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                    .background(ErrorRed)
+                    .padding(end = 20.dp),
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Remove from library",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+        },
+    ) {
+        LibraryBookRow(book = book)
     }
 }
 

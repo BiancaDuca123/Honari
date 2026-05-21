@@ -62,4 +62,19 @@ class LibraryViewModel @Inject constructor(
             )
         }
     }
+
+    fun removeBook(bookId: String) {
+        viewModelScope.launch {
+            runCatching { libraryRepository.removeBook(bookId) }
+                .onFailure { throwable ->
+                    _uiState.update { state ->
+                        state.copy(error = throwable.message ?: "Failed to remove book")
+                    }
+                }
+        }
+    }
+
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
+    }
 }

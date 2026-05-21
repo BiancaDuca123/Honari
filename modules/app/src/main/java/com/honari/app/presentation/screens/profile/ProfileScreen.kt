@@ -1,6 +1,11 @@
 package com.honari.app.presentation.screens.profile
 
 import androidx.activity.ComponentActivity
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +30,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.MenuBook
@@ -80,6 +87,7 @@ fun ProfileScreen(viewModel: ProfileViewModel = hiltViewModel()) {
             appViewModel.setDarkMode(enabled)
         },
         onLogout = viewModel::logout,
+        onToggleSettings = viewModel::toggleSettings,
     )
 }
 
@@ -89,6 +97,7 @@ private fun ProfileContent(
     username: String,
     onToggleDarkMode: (Boolean) -> Unit,
     onLogout: () -> Unit,
+    onToggleSettings: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -101,6 +110,8 @@ private fun ProfileContent(
             photoUrl = uiState.user?.photoUrl,
             displayName = uiState.user?.displayName ?: DEFAULT_DISPLAY_NAME,
             username = username,
+            showSettings = uiState.showSettings,
+            onToggleSettings = onToggleSettings,
         )
         Spacer(modifier = Modifier.height(16.dp))
         StatsRow(
@@ -110,18 +121,32 @@ private fun ProfileContent(
         )
         Spacer(modifier = Modifier.height(16.dp))
         BooksSection(allBooks = uiState.allBooks)
-        Spacer(modifier = Modifier.height(16.dp))
-        SettingsSection(
-            isDarkMode = uiState.isDarkMode,
-            onToggleDarkMode = onToggleDarkMode,
-            onLogout = onLogout,
-        )
+        AnimatedVisibility(
+            visible = uiState.showSettings,
+            enter = fadeIn() + slideInVertically { -it / 2 },
+            exit = fadeOut() + slideOutVertically { -it / 2 },
+        ) {
+            Column {
+                Spacer(modifier = Modifier.height(16.dp))
+                SettingsSection(
+                    isDarkMode = uiState.isDarkMode,
+                    onToggleDarkMode = onToggleDarkMode,
+                    onLogout = onLogout,
+                )
+            }
+        }
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
 @Composable
-private fun ProfileHeader(photoUrl: String?, displayName: String, username: String) {
+private fun ProfileHeader(
+    photoUrl: String?,
+    displayName: String,
+    username: String,
+    showSettings: Boolean,
+    onToggleSettings: () -> Unit,
+) {
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
     Box(
@@ -131,13 +156,13 @@ private fun ProfileHeader(photoUrl: String?, displayName: String, username: Stri
             .padding(top = statusBarPadding),
     ) {
         IconButton(
-            onClick = {},
+            onClick = onToggleSettings,
             modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
         ) {
             Icon(
-                imageVector = Icons.Default.Settings,
-                contentDescription = "Settings",
-                tint = CardWhite,
+                imageVector = if (showSettings) Icons.Default.Settings else Icons.Default.Settings,
+                contentDescription = if (showSettings) "Hide settings" else "Show settings",
+                tint = if (showSettings) CardWhite.copy(alpha = 0.6f) else CardWhite,
             )
         }
         Column(
@@ -298,7 +323,7 @@ private fun BookCoverCard(book: Book) {
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Default.MenuBook,
+                imageVector = Icons.AutoMirrored.Filled.MenuBook,
                 contentDescription = null,
                 tint = PrimaryTeal,
             )
@@ -346,7 +371,7 @@ private fun SettingsSection(
                     contentColor = CardWhite,
                 ),
             ) {
-                Icon(imageVector = Icons.Default.ExitToApp, contentDescription = null)
+                Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(text = "Logout")
             }
