@@ -17,6 +17,7 @@ data class AuthUiState(
     val isAuthenticated: Boolean = false,
     val currentUser: User? = null,
     val error: String? = null,
+    val successMessage: String? = null,
 )
 
 @HiltViewModel
@@ -54,6 +55,61 @@ class AuthViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun signInWithEmail(email: String, password: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            authRepository.signInWithEmail(email, password)
+                .onSuccess { user ->
+                    _uiState.update {
+                        it.copy(isLoading = false, isAuthenticated = true, currentUser = user)
+                    }
+                }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(isLoading = false, error = e.message ?: "Sign-in failed")
+                    }
+                }
+        }
+    }
+
+    fun registerWithEmail(email: String, displayName: String, password: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            authRepository.registerWithEmail(email, displayName, password)
+                .onSuccess { user ->
+                    _uiState.update {
+                        it.copy(isLoading = false, isAuthenticated = true, currentUser = user)
+                    }
+                }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(isLoading = false, error = e.message ?: "Registration failed")
+                    }
+                }
+        }
+    }
+
+    fun sendPasswordReset(email: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            authRepository.sendPasswordReset(email)
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(isLoading = false, successMessage = "Reset link sent! Check your inbox.")
+                    }
+                }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(isLoading = false, error = e.message ?: "Couldn't send reset email")
+                    }
+                }
+        }
+    }
+
+    fun clearSuccess() {
+        _uiState.update { it.copy(successMessage = null) }
     }
 
     fun logout() {

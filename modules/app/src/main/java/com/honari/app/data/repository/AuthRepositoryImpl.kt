@@ -32,6 +32,33 @@ class AuthRepositoryImpl @Inject constructor(
             fbUser.toUser()
         }
 
+    override suspend fun signInWithEmail(email: String, password: String): Result<User> =
+        runCatching {
+            val fbUser = requireNotNull(
+                auth.signInWithEmailAndPassword(email, password).await().user,
+            ) { "Firebase user is null after email sign-in" }
+            fbUser.toUser()
+        }
+
+    override suspend fun registerWithEmail(
+        email: String,
+        displayName: String,
+        password: String,
+    ): Result<User> = runCatching {
+        val fbUser = requireNotNull(
+            auth.createUserWithEmailAndPassword(email, password).await().user,
+        ) { "Firebase user is null after registration" }
+        val profileUpdate = com.google.firebase.auth.UserProfileChangeRequest.Builder()
+            .setDisplayName(displayName)
+            .build()
+        fbUser.updateProfile(profileUpdate).await()
+        fbUser.reload().await()
+        (auth.currentUser ?: fbUser).toUser()
+    }
+
+    override suspend fun sendPasswordReset(email: String): Result<Unit> =
+        runCatching { auth.sendPasswordResetEmail(email).await() }
+
     override suspend fun logout() = auth.signOut()
 }
 

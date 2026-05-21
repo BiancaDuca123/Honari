@@ -43,6 +43,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.honari.app.presentation.screens.auth.AuthScreen
 import com.honari.app.presentation.screens.auth.AuthViewModel
+import com.honari.app.presentation.screens.auth.ForgotPasswordScreen
+import com.honari.app.presentation.screens.auth.RegisterScreen
 import com.honari.app.presentation.screens.bookdetail.BookDetailScreen
 import com.honari.app.presentation.screens.feed.FeedScreen
 import com.honari.app.presentation.screens.library.LibraryScreen
@@ -50,7 +52,6 @@ import com.honari.app.presentation.screens.onboarding.OnboardingScreen
 import com.honari.app.presentation.screens.profile.ProfileScreen
 import com.honari.app.presentation.screens.scanner.ScannerScreen
 import com.honari.app.presentation.screens.splash.SplashScreen
-import com.honari.app.presentation.theme.BrownHeadline
 import com.honari.app.presentation.theme.PrimaryTeal
 import com.honari.app.presentation.theme.TextSecondary
 
@@ -66,7 +67,13 @@ private val navItems = listOf(
     NavItem(Screen.Profile, Icons.Default.Person, "My Profile"),
 )
 private val bottomNavRoutes = navItems.map { it.screen.route }.toSet()
-private val publicRoutes = setOf(Screen.Splash.route, Screen.Onboarding.route, Screen.Auth.route)
+private val publicRoutes = setOf(
+    Screen.Splash.route,
+    Screen.Onboarding.route,
+    Screen.Auth.route,
+    Screen.Register.route,
+    Screen.ForgotPassword.route,
+)
 
 @Composable
 fun HonariNavHost() {
@@ -154,7 +161,23 @@ fun HonariNavHost() {
                         }
                     }
                 }
-                AuthScreen()
+                AuthScreen(
+                    onNavigateToRegister = { navController.navigate(Screen.Register.route) },
+                    onNavigateToForgotPassword = { navController.navigate(Screen.ForgotPassword.route) },
+                )
+            }
+            composable(Screen.Register.route) {
+                LaunchedEffect(authState.isAuthenticated) {
+                    if (authState.isAuthenticated) {
+                        navController.navigate(Screen.Feed.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                        }
+                    }
+                }
+                RegisterScreen(onNavigateToLogin = { navController.popBackStack() })
+            }
+            composable(Screen.ForgotPassword.route) {
+                ForgotPasswordScreen(onNavigateBack = { navController.popBackStack() })
             }
             composable(Screen.Library.route) {
                 LibraryScreen(
@@ -236,7 +259,7 @@ private fun androidx.compose.foundation.layout.RowScope.BottomBarItem(
         Text(
             text = item.label,
             style = MaterialTheme.typography.labelLarge,
-            color = if (selected) BrownHeadline else TextSecondary,
+            color = if (selected) PrimaryTeal else TextSecondary,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
         )
         Spacer(modifier = Modifier.height(8.dp))

@@ -21,10 +21,14 @@ private val LightColorScheme = lightColorScheme(
     onPrimary = CardWhite,
     primaryContainer = PrimaryTealContainer,
     onPrimaryContainer = PrimaryTealDark,
-    secondary = BrownHeadline,
+    secondary = AccentCoral,
     onSecondary = CardWhite,
-    secondaryContainer = BrownContainer,
-    onSecondaryContainer = BrownHeadline,
+    secondaryContainer = Color(0xFFFFE0B2),
+    onSecondaryContainer = Color(0xFF7C2900),
+    tertiary = AccentIndigo,
+    onTertiary = CardWhite,
+    tertiaryContainer = Color(0xFFE8EAF6),
+    onTertiaryContainer = Color(0xFF1A237E),
     background = BackgroundBeige,
     onBackground = TextPrimary,
     surface = CardWhite,
@@ -34,7 +38,7 @@ private val LightColorScheme = lightColorScheme(
     error = ErrorRed,
     onError = CardWhite,
     outline = BrownLight,
-    outlineVariant = Color(0xFFE0D8CC),
+    outlineVariant = Color(0xFFD7CCC8),
 )
 
 private val DarkColorScheme = darkColorScheme(

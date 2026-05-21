@@ -18,13 +18,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -34,13 +34,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,13 +49,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -68,23 +63,19 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.honari.app.R
 import com.honari.app.presentation.theme.AccentCoral
-import com.honari.app.presentation.theme.AccentIndigo
+import com.honari.app.presentation.theme.AccentPurple
 import com.honari.app.presentation.theme.CardWhite
 import com.honari.app.presentation.theme.ErrorRed
 import com.honari.app.presentation.theme.PrimaryTeal
 import com.honari.app.presentation.theme.PrimaryTealDark
 
-private val AuthGradient = Brush.verticalGradient(
-    listOf(PrimaryTeal, AccentIndigo),
-)
-private val HeroCorner = RoundedCornerShape(bottomStart = 40.dp, bottomEnd = 40.dp)
-private val CardCorner = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
-private const val HERO_HEIGHT = 280
+private val RegisterGradient = Brush.verticalGradient(listOf(AccentPurple, PrimaryTeal))
+private const val HERO_HEIGHT = 240
+private const val MIN_PASSWORD_LENGTH = 6
 
 @Composable
-fun AuthScreen(
-    onNavigateToRegister: () -> Unit,
-    onNavigateToForgotPassword: () -> Unit,
+fun RegisterScreen(
+    onNavigateToLogin: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -118,13 +109,12 @@ fun AuthScreen(
 
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            LoginHero()
-            LoginForm(
+            RegisterHero(onBack = onNavigateToLogin)
+            RegisterForm(
                 isLoading = uiState.isLoading,
-                onLogin = viewModel::signInWithEmail,
-                onGoogleLogin = { launcher.launch(googleSignInClient.signInIntent) },
-                onForgotPassword = onNavigateToForgotPassword,
-                onRegister = onNavigateToRegister,
+                onRegister = { name, email, pass -> viewModel.registerWithEmail(email, name, pass) },
+                onGoogleRegister = { launcher.launch(googleSignInClient.signInIntent) },
+                onLoginClick = onNavigateToLogin,
             )
         }
 
@@ -147,36 +137,36 @@ fun AuthScreen(
 }
 
 @Composable
-private fun LoginHero() {
+private fun RegisterHero(onBack: () -> Unit) {
     Box(
-        modifier = Modifier.fillMaxWidth().height(HERO_HEIGHT.dp).background(AuthGradient, HeroCorner),
+        modifier = Modifier.fillMaxWidth().height(HERO_HEIGHT.dp).background(RegisterGradient),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = Icons.Default.MenuBook,
+            imageVector = Icons.Default.AutoStories,
             contentDescription = null,
-            tint = CardWhite.copy(alpha = 0.08f),
-            modifier = Modifier.size(220.dp),
+            tint = CardWhite.copy(alpha = 0.07f),
+            modifier = Modifier.size(200.dp),
         )
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.statusBarsPadding(),
         ) {
             Icon(
-                imageVector = Icons.Default.MenuBook,
+                imageVector = Icons.Default.AutoStories,
                 contentDescription = null,
                 tint = CardWhite,
-                modifier = Modifier.size(64.dp),
+                modifier = Modifier.size(56.dp),
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             Text(
-                text = "Honari",
-                style = MaterialTheme.typography.displaySmall,
+                "Create Account",
+                style = MaterialTheme.typography.headlineMedium,
                 color = CardWhite,
                 fontWeight = FontWeight.ExtraBold,
             )
             Text(
-                text = "Your personal book companion",
+                "Join the Honari reading community",
                 style = MaterialTheme.typography.bodyMedium,
                 color = CardWhite.copy(alpha = 0.85f),
             )
@@ -185,16 +175,21 @@ private fun LoginHero() {
 }
 
 @Composable
-private fun LoginForm(
+private fun RegisterForm(
     isLoading: Boolean,
-    onLogin: (String, String) -> Unit,
-    onGoogleLogin: () -> Unit,
-    onForgotPassword: () -> Unit,
-    onRegister: () -> Unit,
+    onRegister: (name: String, email: String, password: String) -> Unit,
+    onGoogleRegister: () -> Unit,
+    onLoginClick: () -> Unit,
 ) {
+    var name by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
+    var confirmPassword by rememberSaveable { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
+
+    val isValid = name.isNotBlank() && email.isNotBlank() &&
+        password.length >= MIN_PASSWORD_LENGTH && password == confirmPassword
 
     Column(
         modifier = Modifier
@@ -204,63 +199,82 @@ private fun LoginForm(
             .navigationBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(modifier = Modifier.height(28.dp))
-        Text(
-            text = "Welcome back!",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = PrimaryTealDark,
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "Sign in to continue",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
         Spacer(modifier = Modifier.height(24.dp))
+        AuthTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = "Display Name",
+            leadingIcon = { Icon(Icons.Default.Person, null, tint = AccentPurple) },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+        )
+        Spacer(modifier = Modifier.height(12.dp))
         AuthTextField(
             value = email,
             onValueChange = { email = it },
             label = "Email",
-            leadingIcon = { Icon(Icons.Default.Email, null, tint = PrimaryTeal) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+            leadingIcon = { Icon(Icons.Default.Email, null, tint = AccentPurple) },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Next,
+            ),
         )
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         AuthTextField(
             value = password,
-            onValueChange = { password = it },
-            label = "Password",
-            leadingIcon = { Icon(Icons.Default.Lock, null, tint = PrimaryTeal) },
-            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+            onValueChange = { password = it; passwordError = null },
+            label = "Password (min 6 chars)",
+            leadingIcon = { Icon(Icons.Default.Lock, null, tint = AccentPurple) },
+            visualTransformation = if (showPassword) VisualTransformation.None
+            else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { showPassword = !showPassword }) {
                     Icon(
                         if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = null, tint = PrimaryTeal,
+                        contentDescription = null,
+                        tint = AccentPurple,
                     )
                 }
             },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { onLogin(email, password) }),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Next,
+            ),
         )
-        TextButton(
-            onClick = onForgotPassword,
-            modifier = Modifier.align(Alignment.End),
-        ) {
-            Text("Forgot password?", color = AccentCoral, style = MaterialTheme.typography.labelLarge)
+        Spacer(modifier = Modifier.height(12.dp))
+        AuthTextField(
+            value = confirmPassword,
+            onValueChange = {
+                confirmPassword = it
+                passwordError = if (it != password) "Passwords don't match" else null
+            },
+            label = "Confirm Password",
+            leadingIcon = { Icon(Icons.Default.Lock, null, tint = AccentPurple) },
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done,
+            ),
+        )
+        passwordError?.let { err ->
+            Text(
+                text = err,
+                color = ErrorRed,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.align(Alignment.Start).padding(start = 4.dp, top = 2.dp),
+            )
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         Button(
-            onClick = { onLogin(email, password) },
-            enabled = !isLoading && email.isNotBlank() && password.isNotBlank(),
+            onClick = { onRegister(name, email, password) },
+            enabled = !isLoading && isValid,
             modifier = Modifier.fillMaxWidth().height(52.dp),
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = PrimaryTeal,
+                containerColor = AccentPurple,
                 contentColor = CardWhite,
             ),
         ) {
-            Text("Sign In", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Create Account", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.height(20.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -269,81 +283,22 @@ private fun LoginForm(
             HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
         }
         Spacer(modifier = Modifier.height(20.dp))
-        GoogleSignInButton(onClick = onGoogleLogin, enabled = !isLoading)
+        GoogleSignInButton(onClick = onGoogleRegister, enabled = !isLoading)
         Spacer(modifier = Modifier.height(20.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "Don't have an account?",
+                "Already have an account?",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                " Register",
+                " Sign In",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = AccentCoral,
-                modifier = Modifier.clickable(onClick = onRegister),
+                modifier = Modifier.clickable(onClick = onLoginClick),
             )
         }
         Spacer(modifier = Modifier.height(24.dp))
-    }
-}
-
-@Composable
-internal fun AuthTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    leadingIcon: @Composable (() -> Unit)? = null,
-    trailingIcon: @Composable (() -> Unit)? = null,
-    visualTransformation: VisualTransformation = VisualTransformation.None,
-    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    keyboardActions: KeyboardActions = KeyboardActions.Default,
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        leadingIcon = leadingIcon,
-        trailingIcon = trailingIcon,
-        visualTransformation = visualTransformation,
-        keyboardOptions = keyboardOptions,
-        keyboardActions = keyboardActions,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        singleLine = true,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = PrimaryTeal,
-            focusedLabelColor = PrimaryTeal,
-            cursorColor = PrimaryTeal,
-        ),
-    )
-}
-
-@Composable
-internal fun GoogleSignInButton(onClick: () -> Unit, enabled: Boolean) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier.fillMaxWidth().height(52.dp),
-        shape = RoundedCornerShape(14.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-        ),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp),
-    ) {
-        Icon(
-            painter = painterResource(id = R.drawable.ic_google_logo),
-            contentDescription = null,
-            tint = Color.Unspecified,
-            modifier = Modifier.size(20.dp),
-        )
-        Spacer(modifier = Modifier.size(10.dp))
-        Text(
-            "Continue with Google",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-        )
     }
 }
