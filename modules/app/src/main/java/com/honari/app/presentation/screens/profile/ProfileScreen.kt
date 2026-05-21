@@ -1,5 +1,6 @@
 package com.honari.app.presentation.screens.profile
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -47,11 +48,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.honari.app.AppViewModel
 import com.honari.app.domain.model.Book
 import com.honari.app.presentation.theme.BrownHeadline
 import com.honari.app.presentation.theme.CardWhite
@@ -66,11 +69,10 @@ private val AvatarSize = 100.dp
 private val AvatarOverlap = 50.dp
 
 @Composable
-fun ProfileScreen(
-    onToggleDarkMode: (Boolean) -> Unit,
-    viewModel: ProfileViewModel = hiltViewModel(),
-) {
+fun ProfileScreen(viewModel: ProfileViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val activity = LocalContext.current as ComponentActivity
+    val appViewModel: AppViewModel = hiltViewModel(activity)
     val username = uiState.user?.email?.substringBefore('@').orEmpty().ifEmpty { DEFAULT_USERNAME }
 
     ProfileContent(
@@ -78,7 +80,7 @@ fun ProfileScreen(
         username = username,
         onToggleDarkMode = { enabled ->
             viewModel.setDarkMode(enabled)
-            onToggleDarkMode(enabled)
+            appViewModel.setDarkMode(enabled)
         },
         onLogout = viewModel::logout,
     )

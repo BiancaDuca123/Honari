@@ -1,10 +1,11 @@
-import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
-private val localProperties = Properties().also { props ->
-    rootProject.file("local.properties").takeIf { it.exists() }
-        ?.inputStream()?.use(props::load)
-}
+private val localProperties =
+    Properties().also { props ->
+        rootProject.file("local.properties").takeIf { it.exists() }
+            ?.inputStream()?.use(props::load)
+    }
 
 plugins {
     alias(libs.plugins.android.application)

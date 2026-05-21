@@ -15,6 +15,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private const val BOOK_NOT_FOUND_MESSAGE = "Book not found for this barcode"
+private const val SAVE_ERROR_MESSAGE = "We couldn't save this book right now."
+private const val READS_MESSAGE = "Added to your reads!"
+private const val WISHLIST_MESSAGE = "Added to your wishlist!"
+
 data class ScannerUiState(
     val isScanning: Boolean = true,
     val isLoading: Boolean = false,
@@ -22,7 +27,7 @@ data class ScannerUiState(
     val scannedBook: Book? = null,
     val isInLibrary: Boolean = false,
     val error: String? = null,
-    val addedStatus: ReadingStatus? = null,
+    val addedMessage: String? = null,
 )
 
 @HiltViewModel
@@ -40,44 +45,97 @@ class ScannerViewModel @Inject constructor(
         if (_uiState.value.isLoading || _uiState.value.scannedIsbn == isbn) {
             return
         }
+        libraryObserverJob?.cancel()
         _uiState.update {
-            it.copy(isLoading = true, scannedIsbn = isbn, isScanning = false, error = null)
+            it.copy(
+                isLoading = true,
+                scannedIsbn = isbn,
+                scannedBook = null,
+                isScanning = false,
+                isInLibrary = false,
+                error = null,
+                addedMessage = null,
+            )
         }
 
         viewModelScope.launch {
             val book = bookRepository.getBookByIsbn(isbn)
             if (book != null) {
                 _uiState.update { it.copy(isLoading = false, scannedBook = book) }
-                libraryObserverJob?.cancel()
                 libraryObserverJob = viewModelScope.launch {
                     libraryRepository.isBookInLibrary(book.id).collect { inLibrary ->
-                        _uiState.update { it.copy(isInLibrary = inLibrary) }
+                        _uiState.update { currentState ->
+                            currentState.copy(isInLibrary = inLibrary)
+                        }
                     }
                 }
             } else {
                 _uiState.update {
-                    it.copy(isLoading = false, error = "Book not found for this barcode")
+                    it.copy(
+                        isLoading = false,
+                        scannedIsbn = null,
+                        isScanning = true,
+                        error = BOOK_NOT_FOUND_MESSAGE,
+                    )
                 }
             }
         }
     }
 
     fun addToLibrary(status: ReadingStatus) {
-        val book = _uiState.value.scannedBook ?: return
+        val scannedBook = _uiState.value.scannedBook ?: return
+        val savedBook = scannedBook.copy(
+            libraryStatus = status,
+            addedAt = System.currentTimeMillis(),
+        )
         viewModelScope.launch {
-            libraryRepository.addBook(
-                book.copy(libraryStatus = status, addedAt = System.currentTimeMillis()),
-            )
-            _uiState.update { it.copy(isInLibrary = true, addedStatus = status) }
+            runCatching {
+                libraryRepository.addBook(savedBook)
+            }.onSuccess {
+                _uiState.update {
+                    it.copy(
+                        scannedBook = savedBook,
+                        isInLibrary = true,
+                        addedMessage = buildAddedMessage(status),
+                        error = null,
+                    )
+                }
+            }.onFailure {
+                _uiState.update { it.copy(error = SAVE_ERROR_MESSAGE) }
+            }
         }
     }
 
     fun dismissSheet() {
         libraryObserverJob?.cancel()
-        _uiState.update { ScannerUiState(isScanning = true) }
+        _uiState.update {
+            it.copy(
+                isScanning = true,
+                isLoading = false,
+                scannedIsbn = null,
+                scannedBook = null,
+                isInLibrary = false,
+                error = null,
+                addedMessage = null,
+            )
+        }
     }
 
     fun clearError() {
-        _uiState.update { it.copy(error = null, isScanning = true) }
+        _uiState.update {
+            it.copy(
+                error = null,
+                isScanning = true,
+                scannedIsbn = null,
+                isLoading = false,
+            )
+        }
     }
+
+    private fun buildAddedMessage(status: ReadingStatus): String =
+        if (status == ReadingStatus.READ) {
+            READS_MESSAGE
+        } else {
+            WISHLIST_MESSAGE
+        }
 }

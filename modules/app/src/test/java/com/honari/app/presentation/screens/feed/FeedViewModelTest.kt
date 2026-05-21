@@ -3,9 +3,11 @@ package com.honari.app.presentation.screens.feed
 import app.cash.turbine.test
 import com.honari.app.domain.model.Book
 import com.honari.app.domain.repository.BookRepository
+import com.honari.app.domain.repository.LibraryRepository
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -25,6 +27,7 @@ class FeedViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val bookRepository = mockk<BookRepository>()
+    private val libraryRepository = mockk<LibraryRepository>()
 
     private val testBooks = listOf(
         Book(id = "1", title = "Book One", authors = listOf("Author A")),
@@ -36,8 +39,9 @@ class FeedViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        every { bookRepository.getFeedBooks() } returns flowOf(testBooks)
-        viewModel = FeedViewModel(bookRepository)
+        every { libraryRepository.getAllBooks() } returns flowOf(emptyList())
+        every { bookRepository.getFeedBooks(any(), any()) } returns flowOf(testBooks)
+        viewModel = FeedViewModel(bookRepository, libraryRepository)
     }
 
     @After
@@ -55,6 +59,13 @@ class FeedViewModelTest {
     }
 
     @Test
+    fun `initial load falls back to fiction when library is empty`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify { bookRepository.getFeedBooks(query = "subject:fiction", maxResults = any()) }
+    }
+
+    @Test
     fun `search returns results after debounce`() = runTest {
         val searchResults = listOf(Book(id = "3", title = "Search Result"))
         coEvery { bookRepository.searchBooks(any()) } returns searchResults
@@ -67,6 +78,37 @@ class FeedViewModelTest {
             assertEquals("kotlin", state.searchQuery)
             assertEquals(1, state.searchResults.size)
             cancelAndConsumeRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `initial load builds personalized query from library books`() = runTest {
+        every {
+            libraryRepository.getAllBooks()
+        } returns flowOf(
+            listOf(
+                Book(
+                    id = "10",
+                    authors = listOf("Author A", "Author B"),
+                    categories = listOf("Science Fiction", "Fantasy"),
+                ),
+                Book(
+                    id = "11",
+                    authors = listOf("Author A", "Author C"),
+                    categories = listOf("Mystery", "Fantasy"),
+                ),
+            ),
+        )
+        viewModel = FeedViewModel(bookRepository, libraryRepository)
+
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify {
+            bookRepository.getFeedBooks(
+                query = "subject:science+fiction+subject:fantasy+subject:mystery+" +
+                    "inauthor:author+a+inauthor:author+b",
+                maxResults = any(),
+            )
         }
     }
 

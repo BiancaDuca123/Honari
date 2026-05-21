@@ -31,12 +31,12 @@ class BookRepositoryImpl @Inject constructor(
     }
 
     override suspend fun searchBooks(query: String, maxResults: Int): List<Book> =
-        runCatching {
+        run {
             api.searchBooks(query = query, maxResults = maxResults, apiKey = apiKey)
                 .items
                 ?.map { it.toDomain() }
                 ?: emptyList()
-        }.getOrThrow()
+        }
 
     override suspend fun getBookById(googleBooksId: String): Book? =
         runCatching { api.getBookById(googleBooksId, apiKey).toDomain() }.getOrNull()

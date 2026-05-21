@@ -4,17 +4,22 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.honari.app.domain.model.Book
 import com.honari.app.domain.repository.BookRepository
+import com.honari.app.domain.repository.LibraryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private const val DEFAULT_QUERY = "subject:fiction"
 private const val SEARCH_DEBOUNCE_MS = 500L
+private const val MAX_SUBJECTS = 3
+private const val MAX_AUTHORS = 2
 
 data class FeedUiState(
     val isLoading: Boolean = false,
@@ -28,6 +33,7 @@ data class FeedUiState(
 @HiltViewModel
 class FeedViewModel @Inject constructor(
     private val bookRepository: BookRepository,
+    private val libraryRepository: LibraryRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FeedUiState())
@@ -45,7 +51,8 @@ class FeedViewModel @Inject constructor(
         feedJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             runCatching {
-                bookRepository.getFeedBooks().collect { books ->
+                val query = buildRecommendationQuery()
+                bookRepository.getFeedBooks(query = query).collect { books ->
                     _uiState.update { it.copy(isLoading = false, books = books) }
                 }
             }.onFailure { throwable ->
@@ -55,6 +62,30 @@ class FeedViewModel @Inject constructor(
             }
         }
     }
+
+    private suspend fun buildRecommendationQuery(): String {
+        val libraryBooks = libraryRepository.getAllBooks().firstOrNull() ?: emptyList()
+        if (libraryBooks.isEmpty()) return DEFAULT_QUERY
+
+        val subjects = libraryBooks.flatMap { it.categories }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .take(MAX_SUBJECTS)
+        val authors = libraryBooks.flatMap { it.authors }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .take(MAX_AUTHORS)
+
+        if (subjects.isEmpty() && authors.isEmpty()) return DEFAULT_QUERY
+
+        val parts = mutableListOf<String>()
+        subjects.forEach { parts.add("subject:${formatRecommendationTerm(it)}") }
+        authors.forEach { parts.add("inauthor:${formatRecommendationTerm(it)}") }
+        return parts.joinToString("+")
+    }
+
+    private fun formatRecommendationTerm(value: String): String =
+        value.lowercase().replace(" ", "+")
 
     fun refreshFeed() = loadFeed()
 

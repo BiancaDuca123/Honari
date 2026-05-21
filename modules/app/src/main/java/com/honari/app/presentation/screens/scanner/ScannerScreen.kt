@@ -7,6 +7,7 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -19,22 +20,26 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -71,11 +76,13 @@ import com.google.accompanist.permissions.rememberPermissionState
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import com.honari.app.domain.model.Book
 import com.honari.app.domain.model.ReadingStatus
 import com.honari.app.presentation.theme.BrownHeadline
 import com.honari.app.presentation.theme.CardWhite
 import com.honari.app.presentation.theme.ErrorRed
 import com.honari.app.presentation.theme.PrimaryTeal
+import com.honari.app.presentation.theme.TextSecondary
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import androidx.compose.ui.geometry.Size as CanvasSize
@@ -87,10 +94,14 @@ private const val OVERLAY_WIDTH_FRACTION = 0.78f
 private const val OVERLAY_HEIGHT_FRACTION = 0.18f
 private const val OVERLAY_CORNER_RADIUS = 36f
 private const val OVERLAY_ALPHA = 0.55f
+private const val BACK_BUTTON_ALPHA = 0.4f
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
-fun ScannerScreen(viewModel: ScannerViewModel = hiltViewModel()) {
+fun ScannerScreen(
+    onBack: () -> Unit = {},
+    viewModel: ScannerViewModel = hiltViewModel(),
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val cameraPermission = rememberPermissionState(Manifest.permission.CAMERA)
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -128,6 +139,24 @@ fun ScannerScreen(viewModel: ScannerViewModel = hiltViewModel()) {
             }
         }
 
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .statusBarsPadding()
+                .padding(8.dp)
+                .background(
+                    color = Color.Black.copy(alpha = BACK_BUTTON_ALPHA),
+                    shape = CircleShape,
+                ),
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = Color.White,
+            )
+        }
+
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
@@ -138,20 +167,9 @@ fun ScannerScreen(viewModel: ScannerViewModel = hiltViewModel()) {
                 Text(text = data.visuals.message)
             }
         }
-
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.5f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator(color = PrimaryTeal)
-            }
-        }
     }
 
-    if (uiState.scannedBook != null) {
+    if (uiState.isLoading || uiState.scannedBook != null) {
         ModalBottomSheet(
             onDismissRequest = viewModel::dismissSheet,
             sheetState = sheetState,
@@ -165,110 +183,215 @@ fun ScannerScreen(viewModel: ScannerViewModel = hiltViewModel()) {
     }
 }
 
+private val SHEET_HORIZONTAL_PADDING = 24.dp
+private val SHEET_BOTTOM_PADDING = 32.dp
+private val BOOK_COVER_WIDTH = 80.dp
+private val BOOK_COVER_HEIGHT = 120.dp
+private val BOOK_COVER_RADIUS = 8.dp
+private val BOOK_DETAILS_SPACING = 16.dp
+private val BOOK_METADATA_SPACING = 4.dp
+private val DESCRIPTION_TOP_SPACING = 16.dp
+private val STATUS_TOP_SPACING = 24.dp
+private val STATUS_MESSAGE_TOP_SPACING = 8.dp
+private val ACTIONS_SPACING = 12.dp
+private val STATUS_CHIP_HORIZONTAL_PADDING = 12.dp
+private val STATUS_CHIP_VERTICAL_PADDING = 8.dp
+private val STATUS_ICON_TEXT_SPACING = 8.dp
+private val STATUS_ICON_SIZE = 18.dp
+private val ACTION_BORDER_WIDTH = 1.dp
+private val LOADING_CONTENT_PADDING = 48.dp
+private const val TITLE_MAX_LINES = 2
+private const val DESCRIPTION_MAX_LINES = 5
+private const val STATUS_CHIP_BACKGROUND_ALPHA = 0.12f
+
 @Composable
 private fun BookInfoSheet(
     uiState: ScannerUiState,
     onAddToLibrary: (ReadingStatus) -> Unit,
 ) {
+    if (uiState.isLoading) {
+        LoadingBookInfoSheet()
+        return
+    }
+
     val book = uiState.scannedBook ?: return
 
-    Column(modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 32.dp)) {
-        Row(modifier = Modifier.fillMaxWidth()) {
-            AsyncImage(
-                model = book.imageUrl,
-                contentDescription = book.title,
-                modifier = Modifier
-                    .size(width = 80.dp, height = 120.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop,
+    Column(
+        modifier = Modifier.padding(
+            start = SHEET_HORIZONTAL_PADDING,
+            end = SHEET_HORIZONTAL_PADDING,
+            bottom = SHEET_BOTTOM_PADDING,
+        ),
+    ) {
+        BookHeader(book = book)
+        BookDescription(description = book.description)
+        LibraryStatusSection(uiState = uiState, onAddToLibrary = onAddToLibrary)
+    }
+}
+
+@Composable
+private fun LoadingBookInfoSheet() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                start = SHEET_HORIZONTAL_PADDING,
+                end = SHEET_HORIZONTAL_PADDING,
+                bottom = LOADING_CONTENT_PADDING,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        CircularProgressIndicator(color = PrimaryTeal)
+    }
+}
+
+@Composable
+private fun BookHeader(book: Book) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        AsyncImage(
+            model = book.imageUrl,
+            contentDescription = book.title,
+            modifier = Modifier
+                .size(width = BOOK_COVER_WIDTH, height = BOOK_COVER_HEIGHT)
+                .clip(RoundedCornerShape(BOOK_COVER_RADIUS)),
+            contentScale = ContentScale.Crop,
+        )
+        Spacer(modifier = Modifier.width(BOOK_DETAILS_SPACING))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = book.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = BrownHeadline,
+                maxLines = TITLE_MAX_LINES,
+                overflow = TextOverflow.Ellipsis,
             )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            if (book.authors.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(BOOK_METADATA_SPACING))
                 Text(
-                    text = book.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = BrownHeadline,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                    text = book.authors.joinToString(", "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary,
+                    fontStyle = FontStyle.Italic,
                 )
-                if (book.authors.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = book.authors.joinToString(", "),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontStyle = FontStyle.Italic,
-                    )
-                }
-                if (book.publishedDate.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = book.publishedDate.take(YEAR_CHARACTERS),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            }
+            buildMetadata(book).takeIf { it.isNotBlank() }?.let { metadata ->
+                Spacer(modifier = Modifier.height(BOOK_METADATA_SPACING))
+                Text(
+                    text = metadata,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary,
+                )
             }
         }
-        if (book.description.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun BookDescription(description: String) {
+    if (description.isEmpty()) {
+        return
+    }
+
+    Spacer(modifier = Modifier.height(DESCRIPTION_TOP_SPACING))
+    Text(
+        text = description,
+        style = MaterialTheme.typography.bodySmall,
+        color = TextSecondary,
+        maxLines = DESCRIPTION_MAX_LINES,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
+@Composable
+private fun LibraryStatusSection(
+    uiState: ScannerUiState,
+    onAddToLibrary: (ReadingStatus) -> Unit,
+) {
+    Spacer(modifier = Modifier.height(STATUS_TOP_SPACING))
+    if (uiState.isInLibrary) {
+        LibraryStatusChip()
+        uiState.addedMessage?.let { addedMessage ->
+            Spacer(modifier = Modifier.height(STATUS_MESSAGE_TOP_SPACING))
             Text(
-                text = book.description,
+                text = addedMessage,
                 style = MaterialTheme.typography.bodySmall,
-                maxLines = 4,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = TextSecondary,
             )
         }
-        Spacer(modifier = Modifier.height(24.dp))
-        if (uiState.isInLibrary) {
+        return
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(ACTIONS_SPACING),
+    ) {
+        Button(
+            onClick = { onAddToLibrary(ReadingStatus.READ) },
+            modifier = Modifier.weight(1f),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = PrimaryTeal,
+                contentColor = CardWhite,
+            ),
+        ) {
+            Text("Mark as Read")
+        }
+        OutlinedButton(
+            onClick = { onAddToLibrary(ReadingStatus.WANT_TO_READ) },
+            modifier = Modifier.weight(1f),
+            border = BorderStroke(ACTION_BORDER_WIDTH, PrimaryTeal),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = PrimaryTeal,
+            ),
+        ) {
+            Text("Add to Wishlist")
+        }
+    }
+}
+
+@Composable
+private fun LibraryStatusChip() {
+    Surface(
+        color = PrimaryTeal.copy(alpha = STATUS_CHIP_BACKGROUND_ALPHA),
+        shape = CircleShape,
+    ) {
+        Row(
+            modifier = Modifier.padding(
+                horizontal = STATUS_CHIP_HORIZONTAL_PADDING,
+                vertical = STATUS_CHIP_VERTICAL_PADDING,
+            ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = PrimaryTeal,
+                modifier = Modifier.size(STATUS_ICON_SIZE),
+            )
+            Spacer(modifier = Modifier.width(STATUS_ICON_TEXT_SPACING))
             Text(
-                text = "✓ Already in your library",
+                text = "Already in your library",
                 style = MaterialTheme.typography.bodyMedium,
                 color = PrimaryTeal,
                 fontWeight = FontWeight.SemiBold,
             )
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Button(
-                    onClick = { onAddToLibrary(ReadingStatus.READ) },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryTeal,
-                        contentColor = CardWhite,
-                    ),
-                ) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Read")
-                }
-                OutlinedButton(
-                    onClick = { onAddToLibrary(ReadingStatus.WANT_TO_READ) },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = CardWhite,
-                        contentColor = PrimaryTeal,
-                    ),
-                ) {
-                    Icon(
-                        Icons.Default.FavoriteBorder,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Want to Read")
-                }
-            }
         }
     }
+}
+
+private fun buildMetadata(book: Book): String {
+    val parts = mutableListOf<String>()
+    val year = book.publishedDate.take(YEAR_CHARACTERS)
+    if (year.isNotBlank()) {
+        parts.add(year)
+    }
+    if (book.pageCount > 0) {
+        parts.add("${book.pageCount} pages")
+    }
+    if (book.language.isNotBlank()) {
+        parts.add(book.language.uppercase())
+    }
+    return parts.joinToString(" · ")
 }
 
 @Composable

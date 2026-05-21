@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoStories
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CollectionsBookmark
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
@@ -60,6 +61,7 @@ private data class NavItem(val screen: Screen, val icon: ImageVector, val label:
 
 private val navItems = listOf(
     NavItem(Screen.Library, Icons.Default.CollectionsBookmark, "My Collection"),
+    NavItem(Screen.Scanner, Icons.Default.CameraAlt, "Scan"),
     NavItem(Screen.Feed, Icons.Default.AutoStories, "Explore"),
     NavItem(Screen.Profile, Icons.Default.Person, "My Profile"),
 )
@@ -67,7 +69,7 @@ private val bottomNavRoutes = navItems.map { it.screen.route }.toSet()
 private val publicRoutes = setOf(Screen.Splash.route, Screen.Onboarding.route, Screen.Auth.route)
 
 @Composable
-fun HonariNavHost(onToggleDarkMode: (Boolean) -> Unit) {
+fun HonariNavHost() {
     val authViewModel: AuthViewModel = hiltViewModel()
     val navViewModel: NavViewModel = hiltViewModel()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
@@ -155,7 +157,7 @@ fun HonariNavHost(onToggleDarkMode: (Boolean) -> Unit) {
                 AuthScreen()
             }
             composable(Screen.Library.route) {
-                LibraryScreen(onScanBook = { navController.navigate(Screen.Scanner.route) })
+                LibraryScreen()
             }
             composable(Screen.Feed.route) {
                 FeedScreen(
@@ -165,10 +167,10 @@ fun HonariNavHost(onToggleDarkMode: (Boolean) -> Unit) {
                 )
             }
             composable(Screen.Profile.route) {
-                ProfileScreen(onToggleDarkMode = onToggleDarkMode)
+                ProfileScreen()
             }
             composable(Screen.Scanner.route) {
-                ScannerScreen()
+                ScannerScreen(onBack = { navController.popBackStack() })
             }
             composable(
                 route = Screen.BookDetail.route,

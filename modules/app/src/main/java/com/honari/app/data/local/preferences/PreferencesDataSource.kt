@@ -1,6 +1,7 @@
 package com.honari.app.data.local.preferences
 
 import android.content.Context
+import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -17,9 +18,9 @@ class PreferencesDataSource @Inject constructor(
 
     var isDarkMode: Boolean
         get() = prefs.getBoolean(KEY_DARK_MODE, false)
-        set(value) = prefs.edit().putBoolean(KEY_DARK_MODE, value).apply()
+        set(value) = prefs.edit { putBoolean(KEY_DARK_MODE, value) }
 
     var isOnboardingDone: Boolean
         get() = prefs.getBoolean(KEY_ONBOARDING_DONE, false)
-        set(value) = prefs.edit().putBoolean(KEY_ONBOARDING_DONE, value).apply()
+        set(value) = prefs.edit { putBoolean(KEY_ONBOARDING_DONE, value) }
 }

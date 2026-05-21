@@ -2,7 +2,6 @@ package com.honari.app.presentation.screens.library
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -10,28 +9,21 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.honari.app.presentation.theme.BrownHeadline
-import com.honari.app.presentation.theme.CardWhite
 import com.honari.app.presentation.theme.PrimaryTeal
 import com.honari.app.presentation.theme.PrimaryTealDark
 
@@ -44,63 +36,45 @@ private val collectionActions = listOf(
 )
 
 @Composable
-fun LibraryScreen(
-    onScanBook: () -> Unit,
-    viewModel: LibraryViewModel = hiltViewModel(),
-) {
+fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val folders = remember(uiState.allBooks) { buildFolders(uiState.allBooks) }
     val sectionTitle = uiState.selectedFilter?.title ?: "My Folders"
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Text(
-                text = "My Collections",
-                style = MaterialTheme.typography.headlineLarge,
-                color = BrownHeadline,
-                modifier = Modifier.padding(
-                    start = 20.dp,
-                    top = statusBarPadding + 20.dp,
-                    end = 20.dp,
-                    bottom = 20.dp,
-                ),
-            )
-            ActionButtonsRow(
-                selectedFilter = uiState.selectedFilter,
-                onSelectFilter = viewModel::selectFilter,
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            SectionHeader(
-                title = sectionTitle,
-                modifier = Modifier.padding(horizontal = 20.dp),
-            )
-            LibraryContent(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                uiState = uiState,
-                folders = folders,
-                onSelectFilter = viewModel::selectFilter,
-            )
-        }
-
-        FloatingActionButton(
-            onClick = onScanBook,
+        Text(
+            text = "My Collections",
+            style = MaterialTheme.typography.headlineLarge,
+            color = BrownHeadline,
+            modifier = Modifier.padding(
+                start = 20.dp,
+                top = statusBarPadding + 20.dp,
+                end = 20.dp,
+                bottom = 20.dp,
+            ),
+        )
+        ActionButtonsRow(
+            selectedFilter = uiState.selectedFilter,
+            onSelectFilter = viewModel::selectFilter,
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        SectionHeader(
+            title = sectionTitle,
+            modifier = Modifier.padding(horizontal = 20.dp),
+        )
+        LibraryContent(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .navigationBarsPadding()
-                .padding(24.dp),
-            containerColor = PrimaryTeal,
-            contentColor = CardWhite,
-            shape = RoundedCornerShape(16.dp),
-        ) {
-            Icon(imageVector = Icons.Default.Add, contentDescription = "Scan book")
-        }
+                .fillMaxWidth()
+                .weight(1f),
+            uiState = uiState,
+            folders = folders,
+            onSelectFilter = viewModel::selectFilter,
+        )
     }
 }
 
