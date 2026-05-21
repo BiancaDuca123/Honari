@@ -22,6 +22,7 @@ private const val BOOK_ID_ARG = "bookId"
 private const val SAVE_ERROR_MESSAGE = "We couldn't save this book right now."
 private const val LOAD_ERROR_MESSAGE = "We couldn't load this book right now."
 private const val REVIEW_ERROR_MESSAGE = "Couldn't submit review. Please try again."
+private const val REVIEW_AUTH_ERROR = "Sign in to leave a review."
 
 data class BookDetailUiState(
     val book: Book? = null,
@@ -100,7 +101,11 @@ class BookDetailViewModel @Inject constructor(
         val state = _uiState.value
         val book = state.book ?: return
         if (state.reviewText.isBlank() || state.reviewRating == 0f) return
-        val user = FirebaseAuth.getInstance().currentUser ?: return
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user == null) {
+            _uiState.update { it.copy(error = REVIEW_AUTH_ERROR) }
+            return
+        }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmittingReview = true) }

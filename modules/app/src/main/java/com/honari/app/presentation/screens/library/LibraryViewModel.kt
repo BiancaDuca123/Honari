@@ -48,7 +48,7 @@ class LibraryViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isLoading = true, selectedFilter = LibraryFilter.ALL_BOOKS) }
             libraryRepository.getAllBooks().collect { books ->
                 _uiState.update { it.copy(isLoading = false, allBooks = books) }
             }
@@ -56,11 +56,7 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun selectFilter(filter: LibraryFilter) {
-        _uiState.update { currentState ->
-            currentState.copy(
-                selectedFilter = if (currentState.selectedFilter == filter) null else filter,
-            )
-        }
+        _uiState.update { it.copy(selectedFilter = filter) }
     }
 
     fun removeBook(bookId: String) {

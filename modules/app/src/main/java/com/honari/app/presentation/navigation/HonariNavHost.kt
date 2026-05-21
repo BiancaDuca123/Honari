@@ -157,7 +157,11 @@ fun HonariNavHost() {
                 AuthScreen()
             }
             composable(Screen.Library.route) {
-                LibraryScreen()
+                LibraryScreen(
+                    onBookClick = { bookId ->
+                        navController.navigate(Screen.BookDetail.createRoute(bookId))
+                    },
+                )
             }
             composable(Screen.Feed.route) {
                 FeedScreen(
