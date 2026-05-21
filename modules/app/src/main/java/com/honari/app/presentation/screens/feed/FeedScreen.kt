@@ -236,7 +236,7 @@ private fun ExploreContent(
     onGenreSelected: (String) -> Unit,
     onBookClick: (String) -> Unit,
 ) {
-    val displayed = filterByGenre(books, selectedGenre)
+    val displayed = books
     val featured = displayed.firstOrNull()
     val newReleases = displayed.drop(1).take(NEW_RELEASES_COUNT)
     val picks = if (topPicksBooks.isNotEmpty()) topPicksBooks else displayed.drop(1 + NEW_RELEASES_COUNT)

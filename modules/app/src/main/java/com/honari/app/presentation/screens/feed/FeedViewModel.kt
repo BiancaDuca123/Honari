@@ -140,6 +140,21 @@ class FeedViewModel @Inject constructor(
     }
 
     fun onGenreSelected(genre: String) {
-        _uiState.update { it.copy(selectedGenre = if (it.selectedGenre == genre) null else genre) }
+        val newGenre = if (_uiState.value.selectedGenre == genre) null else genre
+        _uiState.update { it.copy(selectedGenre = newGenre) }
+        feedJob?.cancel()
+        feedJob = viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            val query = if (newGenre != null) "subject:${newGenre.lowercase()}" else DEFAULT_QUERY
+            runCatching {
+                bookRepository.getFeedBooks(query = query).collect { books ->
+                    _uiState.update { it.copy(isLoading = false, books = books) }
+                }
+            }.onFailure { throwable ->
+                _uiState.update {
+                    it.copy(isLoading = false, error = throwable.message ?: "Failed to load books")
+                }
+            }
+        }
     }
 }
