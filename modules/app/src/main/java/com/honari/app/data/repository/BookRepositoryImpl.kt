@@ -26,7 +26,7 @@ class BookRepositoryImpl @Inject constructor(
             maxResults = maxResults,
             orderBy = "newest",
             apiKey = apiKey,
-        ).items?.map { it.toDomain() } ?: emptyList()
+        ).items?.map { it.toDomain() }?.distinctBy { it.id } ?: emptyList()
         emit(books)
     }
 
@@ -35,6 +35,7 @@ class BookRepositoryImpl @Inject constructor(
             api.searchBooks(query = query, maxResults = maxResults, apiKey = apiKey)
                 .items
                 ?.map { it.toDomain() }
+                ?.distinctBy { it.id }
                 ?: emptyList()
         }
 

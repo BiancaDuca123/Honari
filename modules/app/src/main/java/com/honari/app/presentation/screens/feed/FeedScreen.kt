@@ -239,7 +239,9 @@ private fun ExploreContent(
     val displayed = books
     val featured = displayed.firstOrNull()
     val newReleases = displayed.drop(1).take(NEW_RELEASES_COUNT)
-    val picks = if (topPicksBooks.isNotEmpty()) topPicksBooks else displayed.drop(1 + NEW_RELEASES_COUNT)
+    val feedIds = displayed.map { it.id }.toSet()
+    val picks = topPicksBooks.filter { it.id !in feedIds }
+        .ifEmpty { displayed.drop(1 + NEW_RELEASES_COUNT) }
 
     PullToRefreshBox(
         isRefreshing = isRefreshing,

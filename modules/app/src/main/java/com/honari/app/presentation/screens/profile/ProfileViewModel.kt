@@ -22,7 +22,6 @@ data class ProfileUiState(
     val wantToRead: Int = 0,
     val allBooks: List<Book> = emptyList(),
     val isDarkMode: Boolean = false,
-    val showSettings: Boolean = false,
 )
 
 @HiltViewModel
@@ -47,10 +46,6 @@ class ProfileViewModel @Inject constructor(
     fun setDarkMode(enabled: Boolean) {
         preferences.isDarkMode = enabled
         _uiState.update { it.copy(isDarkMode = enabled) }
-    }
-
-    fun toggleSettings() {
-        _uiState.update { it.copy(showSettings = !it.showSettings) }
     }
 
     private fun observeUser() {
